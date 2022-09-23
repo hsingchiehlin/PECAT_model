@@ -13,8 +13,9 @@ output: html_document
 # 4. continuous exposure 75 mg = 312.8389 micromole
 # 5. scenarios: SI + LI
 
-```{Basic and Path setting}
+```{r setup, include=FALSE}
 # basic setting
+knitr::opts_chunk$set(echo = TRUE)
 if(!dir.exists("outputs")) dir.create("outputs")
 if(!dir.exists("plots")) dir.create("plots")
 library(tidyverse)
@@ -35,10 +36,10 @@ set_PATH()
 makemod()
 ```
 
-
-```{Site-specific permaebility ratio (using P_jejunum as dominator)}
-# ---------- "Correlation" check ----------
-# Load raw data of Site-specific Peff ratio
+#Site-specific permaebility ratio (using P_jejunum as dominator)
+```{r Site-specific permaebility ratio (using P_jejunum as dominator)}
+## ---------- "Correlation" check ----------
+## Load raw data of Site-specific Peff ratio
 Peff.ratio <- read.csv("DATA/Site-specific Peff data.csv")
 Peff.ratio.jej <- Peff.ratio[c("Chemical", "Duo.Jej.ratio", "Ile.Jej.ratio", "Col.Jej.ratio")]
 Peff.ratio.jej$Col.Jej.ratio[3] <- NA #rm. outlier
@@ -64,9 +65,9 @@ dev.off()
 
 
 # ---------- "Distribution" check and statistical information ----------
-Summary.Peff.ratio.data.jej <- as.data.frame(matrix(NA, 4, 6))
+Summary.Peff.ratio.data.jej <- as.data.frame(matrix(NA, 3, 6))
 colnames(Summary.Peff.ratio.data.jej) <- c("Mean", "SD", "Geo.mean", "Geo.SD", "p_value.normal", "p_value.lognormal")
-rownames(Summary.Peff.ratio.data.jej) <- c("Duo", "Ile", "Col", "Col.rm.out")
+rownames(Summary.Peff.ratio.data.jej) <- c("Duo", "Ile", "Col")
 
 Summary.Peff.ratio.data.jej$Mean[1] <- mean(Peff.ratio.jej$Duo.Jej.ratio, na.rm = T)
 Summary.Peff.ratio.data.jej$Mean[2] <- mean(Peff.ratio.jej$Ile.Jej.ratio, na.rm = T)
@@ -119,7 +120,7 @@ Peff.site.plot.raw.data.jej$log.Peff.ratio <- log(Peff.site.plot.raw.data.jej$Pe
 ```
 
 
-```{Site-specific permaebility ratio (using P_colon as dominator)}
+```{r Site-specific permaebility ratio (using P_colon as dominator)}
 # ---------- "Correlation" check ----------
 # Load raw data of Site-specific Peff ratio
 Peff.ratio <- read.csv("DATA/Site-specific Peff data.csv")
@@ -262,7 +263,7 @@ write.csv(multi.nor.colpara, "multi.nor.colpara.csv")
 ```
 
 
-```{Plotting Figure 3_segment-sepecific permeability ratio}
+```{r Plotting Figure 3_segment-sepecific permeability ratio}
 # Log transformed plotting (rm outlier_jeju ratio)
 p3.1 <- ggplot() +
   geom_violin(aes(Peff.site.plot.raw.data.jej$Site, Peff.site.plot.raw.data.jej$log.Peff.ratio, fill = Peff.site.plot.raw.data.jej$Site), linetype = "blank", trim = F)+
@@ -320,7 +321,7 @@ dev.off()
 ```
 
 
-```{IVIVE ratio and Plotting Figure 4_IVIVE ratio}
+```{r IVIVE ratio and Plotting Figure 4_IVIVE ratio}
 IVIVE_ratio <- read.csv("DATA/ivive_ratio_new.csv")
 
 Summary.IVIVE.ratio <- as.data.frame(matrix(NA, 1, 8))
@@ -356,7 +357,7 @@ dev.off()
 ```
 
 
-```{PECAT model - senesitivity analysis and Plotting figure}
+```{r PECAT model - senesitivity analysis and Plotting figure}
 # ---------- Model construction ----------
 model <- "enviro_chem_CAT_PBPK_newvol_withratio.model.R"
 makemcsim(model)
@@ -451,7 +452,7 @@ dev.off()
 ```
 
 
-```{PECAT model - MC simulation}
+```{r PECAT model - MC simulation}
 # ---------- Model construction ----------
 model <- "enviro_chem_CAT_PBPK_newvol_withratio.model.R"
 makemcsim(model)
@@ -882,7 +883,7 @@ for (i in in.file){
 ```
 
 
-```{Plotting Figure5_relationship of permeability and %abs}
+```{r Plotting Figure5_relationship of permeability and %abs}
 # Load MC results
 mc_sim_results_jeju <- read.csv("outputs/rela_p_abs_SI+LI_jeju as base.csv")
 rownames(mc_sim_results_jeju) <- mc_sim_results_jeju$X
@@ -1141,7 +1142,7 @@ sum(Papp_in_vitro_newdata$within_95CI_jeju_ivive, na.rm = T)
 ```
 
 
-```{Plotting FigureS3_relationship of permeability and %abs with new data (162 drugs)}
+```{r Plotting FigureS3_relationship of permeability and %abs with new data (162 drugs)}
 Papp_in_vitro_newdata <- read.csv("outputs/Drug_Papp_newdata162drugs_in vitro_prediction_jeju_ivive.csv")
 rownames(Papp_in_vitro_newdata) <- Papp_in_vitro_newdata$X
 Papp_in_vitro_newdata <- Papp_in_vitro_newdata[,-1]
@@ -1209,7 +1210,7 @@ dev.off()
 ```
 
 
-```{Prediction of Fabs for Environmental Chemicals and Plotting Figure6_pedicted Fabs of environmental chemicals_with 95CI}
+```{r Prediction of Fabs for Environmental Chemicals and Plotting Figure6_pedicted Fabs of environmental chemicals_with 95CI}
 # ---------- Prediction of Fabs for HTTK Chemicals ----------
 HTTK_abs_ivive_jeju <- as.data.frame(matrix(NA, 20, 10001))
 rownames(HTTK_abs_ivive_jeju) <- in.file[c(1:20)]
@@ -1294,7 +1295,7 @@ dev.off()
 ```
 
 
-```{Risk prioritization and Plotting Figure7_OED compare with exposure}
+```{r Risk prioritization and Plotting Figure7_OED compare with exposure}
 # load data
 risk_prior_data <- read.csv("DATA/risk_prior_data.csv")
 risk_prior_data$CAS <- as.character(risk_prior_data$CAS)
