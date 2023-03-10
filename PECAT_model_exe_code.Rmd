@@ -1,0 +1,1858 @@
+---
+title: "PECAT_analysis_exe_code"
+author: "Hsing-Chieh Lin"
+date: "2022/7/21"
+updated date: "2023/2/5"
+output: html_document
+---
+# This script is for "Development of Physiological-based Gut Absorption Model to Improve Modeling of Bioavailability for Environmental Chemicals"
+
+# Simulation setting:
+# 1. Switches off intestine epithilia and kidney metabolite
+# 2. f_reabs = 0; ETS = 0
+# 3. simulate 10000 hr 
+# 4. continuous exposure 75 mg = 312.8389 micromole
+# 5. scenarios: SI + LI
+
+```{r setup, include=FALSE}
+# basic setting
+knitr::opts_chunk$set(echo = TRUE)
+if(!dir.exists("outputs")) dir.create("outputs")
+if(!dir.exists("plots")) dir.create("plots")
+library(tidyverse)
+library(plyr)
+library(ggplot2)
+library(ggridges)
+library(scales)
+library(ggpubr)
+library(cowplot)
+library(gridExtra)
+library(grid)
+library(Metrics)
+library(EnvStats)
+library(patchwork)
+library(httk)
+# Create mod.exe 
+source("MCSim/function.R")
+set_PATH()
+makemod()
+```
+
+
+```{r Site-specific permaebility ratio (using P_jejunum as dominator)}
+## ---------- "Correlation" check ----------
+## Load raw data of Site-specific Peff ratio
+Peff.ratio <- read.csv("DATA/Site-specific Peff data.csv")
+Peff.ratio.jej <- Peff.ratio[c("Chemical", "Duo.Jej.ratio", "Ile.Jej.ratio", "Col.Jej.ratio")]
+Peff.ratio.jej$Col.Jej.ratio[3] <- NA #rm. outlier
+
+# Customize upper panel
+# Scatter Plot Matrices "pearson"
+upper.panel<-function(x, y){
+  points(x,y, pch=19, cex = 1.2, col=rgb(38, 102, 207, maxColorValue = 255, alpha = 200))
+  r <- round(cor(x, y, use = "complete.obs"), digits=2)
+  p <- round(cor.test(x, y)$p.value, digits=2)
+  txt <- paste0("Pearson's R = ", r)
+  txt.2 <- paste0("p-value = ", p)
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  text(0.6, 0.2, txt, cex = 1)
+  text(0.6, 0.1, txt.2, cex = 1)
+}
+# Figure S2A
+tiff(width = 7.5, height = 6.54, "plots/Figure.S2a.tiff", units = "in", res=600)
+pairs(log(Peff.ratio.jej[,2:4]), lower.panel = NULL, 
+      upper.panel = upper.panel)
+dev.off()
+
+
+# ---------- "Distribution" check and statistical information ----------
+Summary.Peff.ratio.data.jej <- as.data.frame(matrix(NA, 3, 6))
+colnames(Summary.Peff.ratio.data.jej) <- c("Mean", "SD", "Geo.mean", "Geo.SD", "p_value.normal", "p_value.lognormal")
+rownames(Summary.Peff.ratio.data.jej) <- c("Duo", "Ile", "Col")
+
+Summary.Peff.ratio.data.jej$Mean[1] <- mean(Peff.ratio.jej$Duo.Jej.ratio, na.rm = T)
+Summary.Peff.ratio.data.jej$Mean[2] <- mean(Peff.ratio.jej$Ile.Jej.ratio, na.rm = T)
+Summary.Peff.ratio.data.jej$Mean[3] <- mean(Peff.ratio.jej$Col.Jej.ratio, na.rm = T)
+
+Summary.Peff.ratio.data.jej$SD[1] <- sd(Peff.ratio.jej$Duo.Jej.ratio, na.rm = T)
+Summary.Peff.ratio.data.jej$SD[2] <- sd(Peff.ratio.jej$Ile.Jej.ratio, na.rm = T)
+Summary.Peff.ratio.data.jej$SD[3] <- sd(Peff.ratio.jej$Col.Jej.ratio, na.rm = T)
+
+Summary.Peff.ratio.data.jej$Geo.mean[1] <- exp(mean(log(Peff.ratio.jej$Duo.Jej.ratio), na.rm = T))
+Summary.Peff.ratio.data.jej$Geo.mean[2] <- exp(mean(log(Peff.ratio.jej$Ile.Jej.ratio), na.rm = T))
+Summary.Peff.ratio.data.jej$Geo.mean[3] <- exp(mean(log(Peff.ratio.jej$Col.Jej.ratio), na.rm = T))
+
+Summary.Peff.ratio.data.jej$Geo.SD[1] <- geoSD(Peff.ratio.jej$Duo.Jej.ratio, na.rm = T)
+Summary.Peff.ratio.data.jej$Geo.SD[2] <- geoSD(Peff.ratio.jej$Ile.Jej.ratio, na.rm = T)
+Summary.Peff.ratio.data.jej$Geo.SD[3] <- geoSD(Peff.ratio.jej$Col.Jej.ratio, na.rm = T)
+
+Summary.Peff.ratio.data.jej$log.mean[1] <- mean(log(Peff.ratio.jej$Duo.Jej.ratio), na.rm = T)
+Summary.Peff.ratio.data.jej$log.mean[2] <- mean(log(Peff.ratio.jej$Ile.Jej.ratio), na.rm = T)
+Summary.Peff.ratio.data.jej$log.mean[3] <- mean(log(Peff.ratio.jej$Col.Jej.ratio), na.rm = T)
+
+Summary.Peff.ratio.data.jej$log.SD[1] <- sd(log(Peff.ratio.jej$Duo.Jej.ratio), na.rm = T)
+Summary.Peff.ratio.data.jej$log.SD[2] <- sd(log(Peff.ratio.jej$Ile.Jej.ratio), na.rm = T)
+Summary.Peff.ratio.data.jej$log.SD[3] <- sd(log(Peff.ratio.jej$Col.Jej.ratio), na.rm = T)
+
+Summary.Peff.ratio.data.jej$p_value.normal[1] <- shapiro.test(Peff.ratio.jej$Duo.Jej.ratio)$p.value # p-value = 0.7459 -> normality
+Summary.Peff.ratio.data.jej$p_value.normal[2] <- shapiro.test(Peff.ratio.jej$Ile.Jej.ratio)$p.value # p-value = 0.02459 -> no normality
+Summary.Peff.ratio.data.jej$p_value.normal[3] <- shapiro.test(Peff.ratio.jej$Col.Jej.ratio)$p.value # p-value = 2.41e-05 -> no normality
+
+Summary.Peff.ratio.data.jej$p_value.lognormal[1] <- shapiro.test(log(Peff.ratio.jej$Duo.Jej.ratio))$p.value # p-value = 0.4757 -> normality
+Summary.Peff.ratio.data.jej$p_value.lognormal[2] <- shapiro.test(log(Peff.ratio.jej$Ile.Jej.ratio))$p.value # p-value = 0.4693 -> normality
+Summary.Peff.ratio.data.jej$p_value.lognormal[3] <- shapiro.test(log(Peff.ratio.jej$Col.Jej.ratio))$p.value # p-value = 0.000163-> no normality
+
+# p-value > 0.05 implying that the distribution of the data are not significantly different from normal distribution. 
+# In other words, we can assume the normality.
+
+write.csv(Summary.Peff.ratio.data.jej, "outputs/Summary.Peff.ratio.data.jej.csv")
+
+
+# compile data for plotting
+Summary.Peff.ratio.data.jej <- read.csv("outputs/Summary.Peff.ratio.data.jej.csv")
+Summary.Peff.ratio.data.jej$Site <- c("Duodenum", "Ileum", "Colon")
+
+Peff.ratio.plot.jej <- Peff.ratio.jej[-1]
+
+Peff.site.plot.raw.data.jej <- data.frame(Site = rep(c("Duodenum", "Ileum", "Colon"), each = 55))
+Peff.site.plot.raw.data.jej$Chemical <- rep(Peff.ratio.jej$Chemical, 3)
+Peff.site.plot.raw.data.jej$Peff.ratio <- unlist(Peff.ratio.plot.jej)
+Peff.site.plot.raw.data.jej$log.Peff.ratio <- log(Peff.site.plot.raw.data.jej$Peff.ratio)
+
+```
+
+
+```{r Site-specific permaebility ratio (using P_colon as dominator)}
+# ---------- "Correlation" check ----------
+# Load raw data of Site-specific Peff ratio
+Peff.ratio <- read.csv("DATA/Site-specific Peff data.csv")
+
+Peff.ratio$Duo.colon.ratio <- Peff.ratio$Duo.P/Peff.ratio$Col.P
+Peff.ratio$Jej.colon.ratio <- Peff.ratio$Jej.P/Peff.ratio$Col.P
+Peff.ratio$Ile.colon.ratio <- Peff.ratio$Ile.P/Peff.ratio$Col.P
+
+Peff.ratio.col <- Peff.ratio[c("Chemical", "Duo.colon.ratio", "Jej.colon.ratio", "Ile.colon.ratio")]
+
+# Customize upper panel
+# Scatter Plot Matrices "pearson"
+upper.panel<-function(x, y){
+  points(x,y, pch=19, cex = 1.2, col=rgb(255, 77, 77, maxColorValue = 255, alpha = 200))
+  r <- round(cor(x, y, use = "complete.obs"), digits=2)
+  p <- round(cor.test(x, y)$p.value, digits=2)
+  txt <- paste0("Pearson's R = ", r)
+  txt.2 <- paste0("p-value = ", p)
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  text(0.6, 0.2, txt, cex = 1)
+  text(0.6, 0.1, txt.2, cex = 1)
+}
+pairs(log(Peff.ratio.col[,2:4]), lower.panel = NULL, 
+      upper.panel = upper.panel)
+
+# remove cyclosporin data
+Peff.ratio.col <- Peff.ratio.col[-3, ]
+
+# Figure S2B
+# Scatter Plot Matrices "pearson" (remove cyclosporin data)
+tiff(width = 7.5, height = 6.54, "plots/Figure.S2b.tiff", units = "in", res=600)
+pairs(log(Peff.ratio.col[,2:4]), lower.panel = NULL, 
+      upper.panel = upper.panel)
+dev.off()
+
+
+# ---------- "Distribution" check and statistical information ----------
+Summary.Peff.ratio.data.col <- as.data.frame(matrix(NA, 3, 6))
+colnames(Summary.Peff.ratio.data.col) <- c("Mean", "SD", "Geo.mean", "Geo.SD", "p_value.normal", "p_value.lognormal")
+rownames(Summary.Peff.ratio.data.col) <- c("Duo.rm.out", "Jej.rm.out", "Ile.rm.out")
+
+Summary.Peff.ratio.data.col$Mean[1] <- mean(Peff.ratio.col$Duo.colon.ratio, na.rm = T)
+Summary.Peff.ratio.data.col$Mean[2] <- mean(Peff.ratio.col$Jej.colon.ratio, na.rm = T)
+Summary.Peff.ratio.data.col$Mean[3] <- mean(Peff.ratio.col$Ile.colon.ratio, na.rm = T)
+
+Summary.Peff.ratio.data.col$SD[1] <- sd(Peff.ratio.col$Duo.colon.ratio, na.rm = T)
+Summary.Peff.ratio.data.col$SD[2] <- sd(Peff.ratio.col$Jej.colon.ratio, na.rm = T)
+Summary.Peff.ratio.data.col$SD[3] <- sd(Peff.ratio.col$Ile.colon.ratio, na.rm = T)
+
+Summary.Peff.ratio.data.col$Geo.mean[1] <- exp(mean(log(Peff.ratio.col$Duo.colon.ratio), na.rm = T))
+Summary.Peff.ratio.data.col$Geo.mean[2] <- exp(mean(log(Peff.ratio.col$Jej.colon.ratio), na.rm = T))
+Summary.Peff.ratio.data.col$Geo.mean[3] <- exp(mean(log(Peff.ratio.col$Ile.colon.ratio), na.rm = T))
+
+Summary.Peff.ratio.data.col$Geo.SD[1] <- geoSD(Peff.ratio.col$Duo.colon.ratio, na.rm = T)
+Summary.Peff.ratio.data.col$Geo.SD[2] <- geoSD(Peff.ratio.col$Jej.colon.ratio, na.rm = T)
+Summary.Peff.ratio.data.col$Geo.SD[3] <- geoSD(Peff.ratio.col$Ile.colon.ratio, na.rm = T)
+
+Summary.Peff.ratio.data.col$log.mean[1] <- mean(log(Peff.ratio.col$Duo.colon.ratio), na.rm = T)
+Summary.Peff.ratio.data.col$log.mean[2] <- mean(log(Peff.ratio.col$Jej.colon.ratio), na.rm = T)
+Summary.Peff.ratio.data.col$log.mean[3] <- mean(log(Peff.ratio.col$Ile.colon.ratio), na.rm = T)
+
+Summary.Peff.ratio.data.col$log.SD[1] <- sd(log(Peff.ratio.col$Duo.colon.ratio), na.rm = T)
+Summary.Peff.ratio.data.col$log.SD[2] <- sd(log(Peff.ratio.col$Jej.colon.ratio), na.rm = T)
+Summary.Peff.ratio.data.col$log.SD[3] <- sd(log(Peff.ratio.col$Ile.colon.ratio), na.rm = T)
+
+Summary.Peff.ratio.data.col$p_value.normal[1] <- shapiro.test(Peff.ratio.col$Duo.colon.ratio)$p.value 
+Summary.Peff.ratio.data.col$p_value.normal[2] <- shapiro.test(Peff.ratio.col$Jej.colon.ratio)$p.value 
+Summary.Peff.ratio.data.col$p_value.normal[3] <- shapiro.test(Peff.ratio.col$Ile.colon.ratio)$p.value
+
+Summary.Peff.ratio.data.col$p_value.lognormal[1] <- shapiro.test(log(Peff.ratio.col$Duo.colon.ratio))$p.value 
+Summary.Peff.ratio.data.col$p_value.lognormal[2] <- shapiro.test(log(Peff.ratio.col$Jej.colon.ratio))$p.value 
+Summary.Peff.ratio.data.col$p_value.lognormal[3] <- shapiro.test(log(Peff.ratio.col$Ile.colon.ratio))$p.value 
+
+Summary.Peff.ratio.data.col$Min[1] <- min(Peff.ratio.col$Duo.colon.ratio, na.rm = T) 
+Summary.Peff.ratio.data.col$Min[2] <- min(Peff.ratio.col$Jej.colon.ratio, na.rm = T) 
+Summary.Peff.ratio.data.col$Min[3] <- min(Peff.ratio.col$Ile.colon.ratio, na.rm = T)
+
+Summary.Peff.ratio.data.col$Max[1] <- max(Peff.ratio.col$Duo.colon.ratio, na.rm = T)
+Summary.Peff.ratio.data.col$Max[2] <- max(Peff.ratio.col$Jej.colon.ratio, na.rm = T)
+Summary.Peff.ratio.data.col$Max[3] <- max(Peff.ratio.col$Ile.colon.ratio, na.rm = T)
+
+# p-value > 0.05 implying that the distribution of the data are not significantly different from normal distribution. 
+# In other words, we can assume the normality.
+
+write.csv(Summary.Peff.ratio.data.col, "outputs/Summary.Peff.ratio.data.col.csv")
+
+
+# compile data for plotting
+Summary.Peff.ratio.data.col <- read.csv("outputs/Summary.Peff.ratio.data.col.csv")
+Summary.Peff.ratio.data.col$Site <- c("Duodenum", "Jejunum", "Ileum")
+
+Peff.ratio.plot.col <- Peff.ratio.col[-1]
+Peff.site.plot.raw.data.col <- data.frame(Site = rep(c("Duodenum", "Jejunum", "Ileum"), each = 54)) # for include all data
+Peff.site.plot.raw.data.col$Chemical <- rep(Peff.ratio.col$Chemical, 3)
+Peff.site.plot.raw.data.col$Peff.ratio <- unlist(Peff.ratio.plot.col)
+Peff.site.plot.raw.data.col$log.Peff.ratio <- log(Peff.site.plot.raw.data.col$Peff.ratio)
+
+
+# ---------- Site-specific Peff (colon) ratio : multivariate normal distribution ----------
+# After check the Pearson's correlation coefficient, the colon ratios have high correlation,
+# therefore, need to use multivariate normal distribution to randomly create the parameters with original correlation and used in following MC simulation
+
+#r2_duo_jej <- 0.80
+#r2_duo_ile <- 0.68
+#r2_jej_ile <- 0.82
+
+#Log.SD <- Summary.Peff.ratio.data.col$log.SD # order: DUo Jej Ile
+
+# covariance matrix 
+#    DUo Jej Ile
+# DUo
+# Jej
+# Ile
+#cov_matrix <- matrix(c(Log.SD[1]^2, r2_duo_jej*Log.SD[1]*Log.SD[2], r2_duo_ile*Log.SD[1]*Log.SD[3],
+                       #r2_duo_jej*Log.SD[1]*Log.SD[2], Log.SD[2]^2, r2_jej_ile*Log.SD[2]*Log.SD[3],
+                       #r2_duo_ile*Log.SD[1]*Log.SD[3], r2_jej_ile*Log.SD[2]*Log.SD[3], Log.SD[3]^2),3,3)
+
+#library(MASS)
+#mean.peff.colon <- Summary.Peff.ratio.data.col$log.mean # order: DUo Jej Ile
+#multi.nor.colpara <- mvrnorm(n = 10000, mean.peff.colon, cov_matrix)
+#multi.nor.colpara <- as.data.frame(multi.nor.colpara)
+#colnames(multi.nor.colpara) <- c("Duo.colon.ratio", "Jej.colon.ratio", "Ile.colon.ratio")
+
+#check randomly-generated parameters have similar correlation with raw data
+#upper.panel<-function(x, y){
+  #points(x,y, pch=19, cex = 1.2, col=rgb(255, 77, 77, maxColorValue = 255, alpha = 200))
+  #r <- round(cor(x, y, use = "complete.obs"), digits=2)
+  #txt <- paste0("Pearson's R = ", r)
+  #usr <- par("usr"); on.exit(par(usr))
+  #par(usr = c(0, 1, 0, 1))
+  #text(0.6, 0.1, txt, cex = 1.2)
+#}
+#pairs(multi.nor.colpara, lower.panel = NULL, 
+      #upper.panel = upper.panel)
+
+#multi.nor.colpara.exp <- exp(multi.nor.colpara)
+#write.csv(multi.nor.colpara.exp, "multi.nor.colpara.exp.csv")
+#write.csv(multi.nor.colpara, "multi.nor.colpara.csv")
+
+```
+
+
+```{r Plotting Figure 3_segment-sepecific permeability ratio}
+# Log transformed plotting (rm outlier_jeju ratio)
+p3.1 <- ggplot() +
+  geom_violin(aes(Peff.site.plot.raw.data.jej$Site, Peff.site.plot.raw.data.jej$log.Peff.ratio, fill = Peff.site.plot.raw.data.jej$Site), linetype = "blank", trim = F)+
+  scale_fill_manual(values=c("Duodenum" = "#4BA1EF25", "Ileum" = "#4EBDAE25", "Colon" = "#ffa72b25"))+
+  
+  geom_jitter(aes(Peff.site.plot.raw.data.jej$Site, Peff.site.plot.raw.data.jej$log.Peff.ratio), 
+              position = position_jitter(0.2), color = "gray") + 
+  annotate("text", x=0.5, y=2.5, label="A", hjust=0, fontface = "bold", size=5) +
+  geom_pointrange(aes(x = Site, y = log.mean, ymin = log.mean-log.SD, ymax = log.mean+log.SD, color = Site), data = Summary.Peff.ratio.data.jej, size=1, fatten = 2.5)+
+  scale_colour_manual(values = c("Duodenum" = "#4BA1EF", "Ileum" = "#4EBDAE", "Colon" = "#ffa72b")) +
+  scale_x_discrete(limits = c("Duodenum", "Ileum", "Colon")) +
+  
+  theme_light() +
+  labs(y = expression(paste("Log(P"[i]," / ", "P"[Jejunum], ")")), x= "") +
+  theme(legend.position = "none",
+        panel.border = element_rect(colour = "black", size = 1.05),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_line(color = "lightgray", linetype = "dashed"),
+        panel.grid.minor = element_blank(),
+        axis.ticks = element_line(color = "black", size = 0.8),
+        axis.title = element_text(color = "black"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black"),
+        strip.text = element_text(color = "black"))
+
+# Log transformed plotting (rm outlier_colon ratio)
+p3.2 <- ggplot() +
+  geom_violin(aes(Peff.site.plot.raw.data.col$Site, Peff.site.plot.raw.data.col$log.Peff.ratio, fill = Peff.site.plot.raw.data.col$Site), linetype = "blank", trim = F)+
+  scale_fill_manual(values=c("Duodenum" = "#4BA1EF25", "Jejunum" = "#FF836425", "Ileum" = "#4EBDAE25"))+
+  
+  geom_jitter(aes(Peff.site.plot.raw.data.col$Site, Peff.site.plot.raw.data.col$log.Peff.ratio), 
+              position = position_jitter(0.2), color = "gray") + 
+  annotate("text", x=0.5, y=6.015, label="B", hjust=0, fontface = "bold", size=5) +
+  geom_pointrange(aes(x = Site, y = log.mean, ymin = log.mean-log.SD, ymax = log.mean+log.SD, color = Site), data = Summary.Peff.ratio.data.col, size=1, fatten = 2.5)+
+  scale_colour_manual(values = c("Duodenum" = "#4BA1EF", "Jejunum" = "#FF8364", "Ileum" = "#4EBDAE")) +
+  scale_x_discrete(limits = c("Duodenum", "Jejunum", "Ileum")) +
+  
+  theme_light() +
+  labs(y = expression(paste("Log(P"[i]," / ", "P"[Colon], ")")), x= "Site") +
+  theme(legend.position = "none",
+        panel.border = element_rect(colour = "black", size = 1.05),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_line(color = "lightgray", linetype = "dashed"),
+        panel.grid.minor = element_blank(),
+        axis.ticks = element_line(color = "black", size = 0.8),
+        axis.title = element_text(color = "black"),
+        axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(color = "black"),
+        strip.text = element_text(color = "black"))
+
+tiff(width = 5.4, height = 6, "plots/Figure 3.tiff", units = "in", res=600)
+p3.1 + p3.2 + plot_layout(height = c(1, 1))
+dev.off()
+
+```
+
+
+```{r IVIVE ratio and Plotting Figure 4_IVIVE ratio}
+IVIVE_ratio <- read.csv("DATA/ivive_ratio_new.csv")
+
+Summary.IVIVE.ratio <- as.data.frame(matrix(NA, 1, 8))
+colnames(Summary.IVIVE.ratio) <- c("Mean", "SD", "log.mean","log.SD", "Geo.mean", "Geo.SD", "p_value.normal", "p_value.lognormal")
+
+Summary.IVIVE.ratio$Mean <- mean(IVIVE_ratio$ivive_ratio, na.rm = T)
+Summary.IVIVE.ratio$SD <- sd(IVIVE_ratio$ivive_ratio, na.rm = T)
+Summary.IVIVE.ratio$log.mean <- mean(log(IVIVE_ratio$ivive_ratio), na.rm = T)
+Summary.IVIVE.ratio$log.SD <- sd(log(IVIVE_ratio$ivive_ratio), na.rm = T)
+Summary.IVIVE.ratio$Geo.mean <- exp(mean(log(IVIVE_ratio$ivive_ratio), na.rm = T))
+Summary.IVIVE.ratio$Geo.SD <- geoSD(IVIVE_ratio$ivive_ratio, na.rm = T)
+Summary.IVIVE.ratio$p_value.normal <- shapiro.test(IVIVE_ratio$ivive_ratio)$p.value
+Summary.IVIVE.ratio$p_value.lognormal <- shapiro.test(log(IVIVE_ratio$ivive_ratio))$p.value
+
+IVIVE_ratio$log.ratio <- log(IVIVE_ratio$ivive_ratio)
+
+tiff(width = 5, height = 4, "plots/Figure.4.tiff", units = "in", res=600)
+ggplot(IVIVE_ratio, aes(x=log.ratio)) + 
+  geom_histogram(aes(y=..density..), colour="#2747D3", fill="white")+
+  geom_density(alpha=.2, fill="#2772D3", colour="#2772D3", size = 0.6)+
+  geom_vline(aes(xintercept=mean(log.ratio, na.rm = T)),
+             color="#EA5038", linetype="dashed", size=0.7)+
+  labs(x=expression(paste("log (P"[app], "/P"[eff], ")")), y = "Density")+
+  ylim(0, 0.4)+
+  theme_bw()+
+  theme(panel.border = element_rect(colour = "black", size = 1.05),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(color = "black"),
+        axis.text = element_text(color = "black"))
+dev.off()
+```
+
+
+```{r PECAT model - MC simulation}
+# ---------- Model construction ----------
+model <- "enviro_chem_CAT_PBPK_newvol_withratio.model.R"
+makemcsim(model)
+
+# ---------- Create results data sheet ----------
+Peff_dm_h <- (10^seq(-8, -2, 0.25))*360 # unit: dm/h (used in model)
+Peff_cm_s <- 10^seq(-8, -2, 0.25) # # unit: cm/s (used to plot)
+
+### mc simulated results file ###
+# "jeju" as dominant 
+mc_sim_results_jeju <- matrix(NA, length(Peff_cm_s), 11)
+mc_sim_results_jeju[, 10] <- Peff_dm_h
+mc_sim_results_jeju[, 11] <- Peff_cm_s
+colnames(mc_sim_results_jeju) <- c("C_blood_med", "C_blood_LCL", "C_blood_UCL",
+                                  "Css_med", "Css_LCL", "Css_UCL",
+                                  "abs_med", "abs_LCL", "abs_UCL",
+                                  "Peff_dm_h", "Peff_cm_s")
+mc_sim_results_jeju <- as.data.frame(mc_sim_results_jeju)
+
+# "colon" as dominant 
+mc_sim_results_colon <- matrix(NA, length(Peff_cm_s), 11)
+mc_sim_results_colon[, 10] <- Peff_dm_h
+mc_sim_results_colon[, 11] <- Peff_cm_s
+colnames(mc_sim_results_colon) <- c("C_blood_med", "C_blood_LCL", "C_blood_UCL",
+                                   "Css_med", "Css_LCL", "Css_UCL",
+                                   "abs_med", "abs_LCL", "abs_UCL",
+                                   "Peff_dm_h", "Peff_cm_s")
+mc_sim_results_colon <- as.data.frame(mc_sim_results_colon)
+
+# "jeju" as dominant with IVIVE
+mc_sim_results_jeju_ivive <- matrix(NA, length(Peff_cm_s), 11)
+mc_sim_results_jeju_ivive[, 10] <- Peff_dm_h
+mc_sim_results_jeju_ivive[, 11] <- Peff_cm_s
+colnames(mc_sim_results_jeju_ivive) <- c("C_blood_med", "C_blood_LCL", "C_blood_UCL",
+                                   "Css_med", "Css_LCL", "Css_UCL",
+                                   "abs_med", "abs_LCL", "abs_UCL",
+                                   "Peff_dm_h", "Peff_cm_s")
+mc_sim_results_jeju_ivive <- as.data.frame(mc_sim_results_jeju_ivive)
+
+
+# ---------- MC simulation ----------
+# simulation using jeju ratio
+for(i in 1:25){
+  
+  file.name <- paste("enviro_chem_mc_", i, ".in", sep="")
+  
+  cat("Integrate (Lsodes, 1e-12, 1e-12, 1);\n\n", file = file.name)
+  sink(file.name, append=TRUE)
+  cat('MonteCarlo ("",10000,11920);
+
+# Absorption on(1)/off(0) switches
+f_Abs_stom  = 0;
+
+s_jeju_ratio = 1;
+
+# Switches off intestine epithilia and kidney metabolite
+Vmax_met_vitro_intestine = 0;
+
+# put peff ratio distributions
+Distrib(Peff_ratio_duod_jeju, LogNormal, 0.609222717,	1.671505774);
+Distrib(Peff_ratio_ileum_jeju, LogNormal, 0.677678179,	2.239434348);
+Distrib(Peff_ratio_colon_jeju, LogNormal, 0.326875234,	4.632878989);# rm. outlier one
+
+# using mean of post distribution\n')
+  peff <- paste("Peff = ", Peff_dm_h[i], ";\n", sep="")
+  cat(peff)
+  cat('Fu_plasma = 0.2021;      
+Fu_vitro_liver = 0.0711;      
+Kpuu_liver =  4.5388;                        
+Vmax_met_vitro_liver = 0.0009; 
+
+# Weibull delayed release parameters
+Weibull_slope_IR = 1; 
+Weibull_slope_SR = 1; 
+Weibull_slope_ER = 1.7802;
+Weibull_scale_IR = 0.1741;
+Weibull_scale_SR = 1.2392; 
+Weibull_scale_ER = 2.1054;
+
+Simulation{
+  
+  BDM = 73.4; 
+  R_type = 0; 
+
+  G_immediate_d = 1;
+  Oral_dose_rate = 312.8389; #312.8389
+
+  PrintStep (C_blood, 1,10000, 100);
+  PrintStep (C_ss_equ, 1, 10000, 100);
+  PrintStep (F_bio, 1, 10000, 100);
+
+};
+
+END.')      
+  
+  sink()
+  
+  out <- mcsim(model, file.name)
+  
+  vars <- names(out)
+  index <- which(vars == "C_blood_1.1" | vars == "F_bio_1.101")
+  mc.sim <- apply(out[index[1]:index[2]], 2, quantile,  c(0.5, 0.025, 0.975)) %>% t()
+  mc.sim <- as.data.frame(mc.sim)
+  
+  mc_sim_results_jeju[i, c(1:3)] <- mc.sim[(101*1), ] # put C_blood into the "mc_sim_results"
+  mc_sim_results_jeju[i, c(4:6)] <- mc.sim[(101*2), ] # put Css into the "mc_sim_results"
+  mc_sim_results_jeju[i, c(7:9)] <- mc.sim[(101*3), ] # put %abs into the "mc_sim_results"
+  
+  write.csv(mc_sim_results_jeju, "outputs/rela_p_abs_SI+LI_jeju as base.csv")
+  file.remove(paste("MCSim/enviro_chem_mc_", i, ".in", sep=""))
+  print(i)
+}
+
+# simulation using colon ratio
+# create setpoint file
+X <- read.csv("multi.nor.colpara.exp.csv")
+write.table(X, file = "setpts.out", row.names = F, sep = "\t")
+
+for(i in 1:25){
+  
+  file.name <- paste("enviro_chem_mc_", i, ".in", sep="")
+  
+  cat("Integrate (Lsodes, 1e-12, 1e-12, 1);\n\n", file = file.name)
+  sink(file.name, append=TRUE)
+  cat('SetPoints ("","setpts.out",0,
+           Peff_ratio_duod_colon, Peff_ratio_jeju_colon, Peff_ratio_ileum_colon); 
+
+# Absorption on(1)/off(0) switches
+f_Abs_stom  = 0;
+
+s_jeju_ratio = 0;
+
+# Switches off intestine epithilia and kidney metabolite
+Vmax_met_vitro_intestine = 0;
+
+# using mean of post distribution\n')
+  peff <- paste("Peff = ", Peff_dm_h[i], ";\n", sep="")
+  cat(peff)
+  cat('Fu_plasma = 0.2021;      
+Fu_vitro_liver = 0.0711;      
+Kpuu_liver =  4.5388;                        
+Vmax_met_vitro_liver = 0.0009; 
+
+# Weibull delayed release parameters
+Weibull_slope_IR = 1; 
+Weibull_slope_SR = 1; 
+Weibull_slope_ER = 1.7802;
+Weibull_scale_IR = 0.1741;
+Weibull_scale_SR = 1.2392; 
+Weibull_scale_ER = 2.1054;
+
+Simulation{
+  
+  BDM = 73.4; 
+  R_type = 0; 
+
+
+  G_immediate_d = 1;
+  Oral_dose_rate = 312.8389; #312.8389
+
+  PrintStep (C_blood, 1,10000, 100);
+  PrintStep (C_ss_equ, 1, 10000, 100);
+  PrintStep (F_bio, 1, 10000, 100);
+
+};
+
+END.')      
+  
+  sink()
+  
+  out <- mcsim(model, file.name)
+  
+  vars <- names(out)
+  index <- which(vars == "C_blood_1.1" | vars == "F_bio_1.101")
+  mc.sim <- apply(out[index[1]:index[2]], 2, quantile,  c(0.5, 0.025, 0.975)) %>% t()
+  mc.sim <- as.data.frame(mc.sim)
+  
+  mc_sim_results_colon[i, c(1:3)] <- mc.sim[(101*1), ] # put C_blood into the "mc_sim_results"
+  mc_sim_results_colon[i, c(4:6)] <- mc.sim[(101*2), ] # put Css into the "mc_sim_results"
+  mc_sim_results_colon[i, c(7:9)] <- mc.sim[(101*3), ] # put %abs into the "mc_sim_results"
+  
+  write.csv(mc_sim_results_colon, "outputs/rela_p_abs_SI+LI_colon as base_cov.csv")
+  file.remove(paste("MCSim/enviro_chem_mc_", i, ".in", sep=""))
+  print(i)
+}
+
+# simulation using jeju ratio and ivive ratio
+for(i in 1:25){
+  
+  file.name <- paste("enviro_chem_mc_", i, ".in", sep="")
+  
+  cat("Integrate (Lsodes, 1e-12, 1e-12, 1);\n\n", file = file.name)
+  sink(file.name, append=TRUE)
+  cat('MonteCarlo ("",10000,11920);
+
+# Absorption on(1)/off(0) switches
+f_Abs_stom  = 0;
+
+s_jeju_ratio = 1;
+
+# Switches off intestine epithilia and kidney metabolite
+Vmax_met_vitro_intestine = 0;
+
+# put peff ratio distributions
+Distrib(Peff_ratio_duod_jeju, LogNormal, 0.609222717,	1.671505774);
+Distrib(Peff_ratio_ileum_jeju, LogNormal, 0.677678179,	2.239434348);
+Distrib(Peff_ratio_colon_jeju, LogNormal, 0.326875234,	4.632878989);# rm. outlier one
+Distrib(Peff_ratio_ivive, LogNormal, 0.05916452,	3.766265);
+
+# using mean of post distribution\n')
+  peff <- paste("Peff = ", Peff_dm_h[i], ";\n", sep="")
+  cat(peff)
+  cat('Fu_plasma = 0.2021;      
+Fu_vitro_liver = 0.0711;      
+Kpuu_liver =  4.5388;                        
+Vmax_met_vitro_liver = 0.0009; 
+
+# Weibull delayed release parameters
+Weibull_slope_IR = 1; 
+Weibull_slope_SR = 1; 
+Weibull_slope_ER = 1.7802;
+Weibull_scale_IR = 0.1741;
+Weibull_scale_SR = 1.2392; 
+Weibull_scale_ER = 2.1054;
+
+Simulation{
+  
+  BDM = 73.4; 
+  R_type = 0; 
+
+  G_immediate_d = 1;
+  Oral_dose_rate = 312.8389; #312.8389
+
+  PrintStep (C_blood, 1,10000, 100);
+  PrintStep (C_ss_equ, 1, 10000, 100);
+  PrintStep (F_bio, 1, 10000, 100);
+
+};
+
+END.')      
+  
+  sink()
+  
+  out <- mcsim(model, file.name)
+  
+  vars <- names(out)
+  index <- which(vars == "C_blood_1.1" | vars == "F_bio_1.101")
+  mc.sim <- apply(out[index[1]:index[2]], 2, quantile,  c(0.5, 0.025, 0.975)) %>% t()
+  mc.sim <- as.data.frame(mc.sim)
+  
+  mc_sim_results_jeju_ivive[i, c(1:3)] <- mc.sim[(101*1), ] # put C_blood into the "mc_sim_results"
+  mc_sim_results_jeju_ivive[i, c(4:6)] <- mc.sim[(101*2), ] # put Css into the "mc_sim_results"
+  mc_sim_results_jeju_ivive[i, c(7:9)] <- mc.sim[(101*3), ] # put %abs into the "mc_sim_results"
+  
+  write.csv(mc_sim_results_jeju_ivive, "outputs/rela_p_abs_SI+LI_newivive_jeju as base.csv")
+  file.remove(paste("MCSim/enviro_chem_mc_", i, ".in", sep=""))
+  print(i)
+}
+
+
+# ---------- Predict Fabs for comparing with observed data ----------
+# observed data: drug in vivo Peff 
+# prediction method: using jeju ration
+Peff_in_vivo <- read.csv("DATA/in vivo_peff_abs.csv")
+Peff_in_vivo <- Peff_in_vivo[, -c(1,7)]
+colnames(Peff_in_vivo) <- c("chemical", "Peff", "Fa", "ref.", "drug.class")
+Peff_in_vivo$Peff_dm_h <- Peff_in_vivo$Peff*360 # Peff: cm/s
+Peff_in_vivo$abs_med_jeju.R <- NA
+Peff_in_vivo$abs_LCL_jeju.R <- NA 
+Peff_in_vivo$abs_UCL_jeju.R <- NA
+
+for (i in 1:33){
+  
+  file.name <- paste("enviro_chem_mc_", i, ".in", sep="")
+  
+  cat("Integrate (Lsodes, 1e-12, 1e-12, 1);\n\n", file = file.name)
+  sink(file.name, append=TRUE)
+  cat('MonteCarlo ("",10000,11920);
+
+# Absorption on(1)/off(0) switches
+f_Abs_stom  = 0;
+
+s_jeju_ratio = 1;
+
+# Switches off intestine epithilia and kidney metabolite
+Vmax_met_vitro_intestine = 0;
+
+# put peff ratio distributions
+Distrib(Peff_ratio_duod_jeju, LogNormal, 0.609222717,	1.671505774);
+Distrib(Peff_ratio_ileum_jeju, LogNormal, 0.677678179,	2.239434348);
+Distrib(Peff_ratio_colon_jeju, LogNormal, 0.326875234,	4.632878989);# rm. outlier one
+
+# using mean of post distribution\n')
+  peff <- paste("Peff = ", Peff_in_vivo$Peff_dm_h[i], ";\n", sep="")
+  cat(peff)
+  cat('Fu_plasma = 0.2021;      
+Fu_vitro_liver = 0.0711;      
+Kpuu_liver =  4.5388;                        
+Vmax_met_vitro_liver = 0.0009; 
+
+# Weibull delayed release parameters
+Weibull_slope_IR = 1; 
+Weibull_slope_SR = 1; 
+Weibull_slope_ER = 1.7802;
+Weibull_scale_IR = 0.1741;
+Weibull_scale_SR = 1.2392; 
+Weibull_scale_ER = 2.1054;
+
+Simulation{
+  
+  BDM = 73.4; 
+  R_type = 0; 
+
+  G_immediate_d = 1;
+  Oral_dose_rate = 312.8389; #312.8389
+
+  PrintStep (C_blood, 1,10000, 100);
+  PrintStep (C_ss_equ, 1, 10000, 100);
+  PrintStep (F_bio, 1, 10000, 100);
+
+};
+
+END.')      
+  
+  sink()
+  
+  out <- mcsim(model, file.name)
+  
+  vars <- names(out)
+  index <- which(vars == "C_blood_1.1" | vars == "F_bio_1.101")
+  mc.sim <- apply(out[index[1]:index[2]], 2, quantile,  c(0.5, 0.025, 0.975)) %>% t()
+  mc.sim <- as.data.frame(mc.sim)
+  
+  Peff_in_vivo[i, c(7:9)] <- mc.sim[(101*3), ] # put %abs into the "mc_sim_results"
+  
+  write.csv(Peff_in_vivo, "outputs/Drug_Peff_in vivo_prediction_using jeju as base.csv")
+  file.remove(paste("MCSim/enviro_chem_mc_", i, ".in", sep=""))
+  print(i)
+}
+
+# observed data: drug in vitro Papp 
+# prediction method: using jeju ration (in file: Predict drug in vitro abs (using ratio Peff_juje as denominator))
+Papp_in_vitro <- read.csv("DATA/in vitro_papp_abs.csv")
+Papp_in_vitro <- Papp_in_vitro[, -c(1,7)]
+colnames(Papp_in_vitro) <- c("chemical", "Papp", "Fa", "ref.", "drug.class")
+Papp_in_vitro$Papp_dm_h <- Papp_in_vitro$Papp*360 # Peff: cm/s
+Papp_in_vitro$abs_med_jeju.R <- NA
+Papp_in_vitro$abs_LCL_jeju.R <- NA 
+Papp_in_vitro$abs_UCL_jeju.R <- NA
+
+for (i in 1:70){
+  
+  file.name <- paste("enviro_chem_mc_", i, ".in", sep="")
+  
+  cat("Integrate (Lsodes, 1e-12, 1e-12, 1);\n\n", file = file.name)
+  sink(file.name, append=TRUE)
+  cat('MonteCarlo ("",10000,11920);
+
+# Absorption on(1)/off(0) switches
+f_Abs_stom  = 0;
+
+s_jeju_ratio = 1;
+
+# Switches off intestine epithilia and kidney metabolite
+Vmax_met_vitro_intestine = 0;
+
+# put peff ratio distributions
+Distrib(Peff_ratio_duod_jeju, LogNormal, 0.609222717,	1.671505774);
+Distrib(Peff_ratio_ileum_jeju, LogNormal, 0.677678179,	2.239434348);
+Distrib(Peff_ratio_colon_jeju, LogNormal, 0.326875234,	4.632878989);# rm. outlier one
+
+# using mean of post distribution\n')
+  peff <- paste("Peff = ", Papp_in_vitro$Papp_dm_h[i], ";\n", sep="")
+  cat(peff)
+  cat('Fu_plasma = 0.2021;      
+Fu_vitro_liver = 0.0711;      
+Kpuu_liver =  4.5388;                        
+Vmax_met_vitro_liver = 0.0009; 
+
+# Weibull delayed release parameters
+Weibull_slope_IR = 1; 
+Weibull_slope_SR = 1; 
+Weibull_slope_ER = 1.7802;
+Weibull_scale_IR = 0.1741;
+Weibull_scale_SR = 1.2392; 
+Weibull_scale_ER = 2.1054;
+
+Simulation{
+  
+  BDM = 73.4; 
+  R_type = 0; 
+
+  G_immediate_d = 1;
+  Oral_dose_rate = 312.8389; #312.8389
+
+  PrintStep (C_blood, 1,10000, 100);
+  PrintStep (C_ss_equ, 1, 10000, 100);
+  PrintStep (F_bio, 1, 10000, 100);
+
+};
+
+END.')      
+  
+  sink()
+  
+  out <- mcsim(model, file.name)
+  
+  vars <- names(out)
+  index <- which(vars == "C_blood_1.1" | vars == "F_bio_1.101")
+  mc.sim <- apply(out[index[1]:index[2]], 2, quantile,  c(0.5, 0.025, 0.975)) %>% t()
+  mc.sim <- as.data.frame(mc.sim)
+  
+  Papp_in_vitro[i, c(7:9)] <- mc.sim[(101*3), ] # put %abs into the "mc_sim_results"
+  
+  write.csv(Papp_in_vitro, "outputs/Drug_Papp_in vitro_prediction_all.csv")
+  file.remove(paste("MCSim/enviro_chem_mc_", i, ".in", sep=""))
+  print(i)
+}
+
+# observed data: drug in vitro Papp 
+# prediction method: using colon ration
+Papp_in_vitro$abs_med_colon.R <- NA
+Papp_in_vitro$abs_LCL_colon.R <- NA 
+Papp_in_vitro$abs_UCL_colon.R <- NA
+
+for (i in 1:70){
+  
+  file.name <- paste("enviro_chem_mc_", i, ".in", sep="")
+  
+  cat("Integrate (Lsodes, 1e-12, 1e-12, 1);\n\n", file = file.name)
+  sink(file.name, append=TRUE)
+  cat('SetPoints ("","setpts.out",0,
+           Peff_ratio_duod_colon, Peff_ratio_jeju_colon, Peff_ratio_ileum_colon); 
+
+# Absorption on(1)/off(0) switches
+f_Abs_stom  = 0;
+
+s_jeju_ratio = 0;
+
+# Switches off intestine epithilia and kidney metabolite
+Vmax_met_vitro_intestine = 0;
+
+# using mean of post distribution\n')
+  peff <- paste("Peff = ", Papp_in_vitro$Papp_dm_h[i], ";\n", sep="")
+  cat(peff)
+  cat('Fu_plasma = 0.2021;      
+Fu_vitro_liver = 0.0711;      
+Kpuu_liver =  4.5388;                        
+Vmax_met_vitro_liver = 0.0009; 
+
+# Weibull delayed release parameters
+Weibull_slope_IR = 1; 
+Weibull_slope_SR = 1; 
+Weibull_slope_ER = 1.7802;
+Weibull_scale_IR = 0.1741;
+Weibull_scale_SR = 1.2392; 
+Weibull_scale_ER = 2.1054;
+
+Simulation{
+  
+  BDM = 73.4; 
+  R_type = 0; 
+
+  G_immediate_d = 1;
+  Oral_dose_rate = 312.8389; #312.8389
+
+  PrintStep (C_blood, 1,10000, 100);
+  PrintStep (C_ss_equ, 1, 10000, 100);
+  PrintStep (F_bio, 1, 10000, 100);
+  
+};
+
+END.')      
+  
+  sink()
+  
+  out <- mcsim(model, file.name)
+  
+  vars <- names(out)
+  index <- which(vars == "C_blood_1.1" | vars == "F_bio_1.101")
+  mc.sim <- apply(out[index[1]:index[2]], 2, quantile,  c(0.5, 0.025, 0.975)) %>% t()
+  mc.sim <- as.data.frame(mc.sim)
+  
+  Papp_in_vitro[i, c(10:12)] <- mc.sim[(101*3), ] # put %abs into the "mc_sim_results"
+  
+  write.csv(Papp_in_vitro, "outputs/Drug_Papp_in vitro_prediction_all.csv")
+  file.remove(paste("MCSim/enviro_chem_mc_", i, ".in", sep=""))
+  print(i)
+}
+
+# observed data: drug in vitro Papp 
+# prediction method: using jeju ration with IVIVE ratio
+Papp_in_vitro$abs_med_jeju.R_ivive <- NA
+Papp_in_vitro$abs_LCL_jeju.R_ivive <- NA 
+Papp_in_vitro$abs_UCL_jeju.R_ivive <- NA
+
+for (i in 1:70){
+  
+  file.name <- paste("enviro_chem_mc_", i, ".in", sep="")
+  
+  cat("Integrate (Lsodes, 1e-12, 1e-12, 1);\n\n", file = file.name)
+  sink(file.name, append=TRUE)
+  cat('MonteCarlo ("",10000,11920);
+
+# Absorption on(1)/off(0) switches
+f_Abs_stom  = 0;
+
+s_jeju_ratio = 1;
+
+# Switches off intestine epithilia and kidney metabolite
+Vmax_met_vitro_intestine = 0;
+
+# put peff ratio distributions
+Distrib(Peff_ratio_duod_jeju, LogNormal, 0.609222717,	1.671505774);
+Distrib(Peff_ratio_ileum_jeju, LogNormal, 0.677678179,	2.239434348);
+Distrib(Peff_ratio_colon_jeju, LogNormal, 0.326875234,	4.632878989);# rm. outlier one
+Distrib(Peff_ratio_ivive, LogNormal, 0.05916452,	3.766265);
+
+# using mean of post distribution\n')
+  peff <- paste("Peff = ", Papp_in_vitro$Papp_dm_h[i], ";\n", sep="")
+  cat(peff)
+  cat('Fu_plasma = 0.2021;      
+Fu_vitro_liver = 0.0711;      
+Kpuu_liver =  4.5388;                        
+Vmax_met_vitro_liver = 0.0009; 
+
+# Weibull delayed release parameters
+Weibull_slope_IR = 1; 
+Weibull_slope_SR = 1; 
+Weibull_slope_ER = 1.7802;
+Weibull_scale_IR = 0.1741;
+Weibull_scale_SR = 1.2392; 
+Weibull_scale_ER = 2.1054;
+
+Simulation{
+  
+  BDM = 73.4; 
+  R_type = 0; 
+
+  G_immediate_d = 1;
+  Oral_dose_rate = 312.8389; #312.8389
+
+  PrintStep (C_blood, 1,10000, 100);
+  PrintStep (C_ss_equ, 1, 10000, 100);
+  PrintStep (F_bio, 1, 10000, 100);
+
+};
+
+END.')      
+  
+  sink()
+  
+  out <- mcsim(model, file.name)
+  
+  vars <- names(out)
+  index <- which(vars == "C_blood_1.1" | vars == "F_bio_1.101")
+  mc.sim <- apply(out[index[1]:index[2]], 2, quantile,  c(0.5, 0.025, 0.975)) %>% t()
+  mc.sim <- as.data.frame(mc.sim)
+  
+  Papp_in_vitro[i, c(13:15)] <- mc.sim[(101*3), ] # put %abs into the "mc_sim_results"
+  
+  write.csv(Papp_in_vitro, "outputs/Drug_Papp_in vitro_prediction_all.csv")
+  file.remove(paste("MCSim/enviro_chem_mc_", i, ".in", sep=""))
+  print(i)
+}
+
+# observed data: environmental in vitro Papp 
+# prediction method: using jeju ration
+Papp_in_vitro_envir.che <- read.csv("DATA/in vitro_papp_abs_envir.che.csv")
+Papp_in_vitro_envir.che <- Papp_in_vitro_envir.che[, -6]
+colnames(Papp_in_vitro_envir.che) <- c("chemical", "Papp", "Fa","unit", "drug.class")
+Papp_in_vitro_envir.che$Papp_dm_h <- Papp_in_vitro_envir.che$Papp*360
+Papp_in_vitro_envir.che$abs_med_jeju.R <- NA
+Papp_in_vitro_envir.che$abs_LCL_jeju.R <- NA 
+Papp_in_vitro_envir.che$abs_UCL_jeju.R <- NA
+
+for (i in 1:9){
+  
+  file.name <- paste("enviro_chem_mc_", i, ".in", sep="")
+  
+  cat("Integrate (Lsodes, 1e-12, 1e-12, 1);\n\n", file = file.name)
+  sink(file.name, append=TRUE)
+  cat('MonteCarlo ("",10000,11920);
+
+# Absorption on(1)/off(0) switches
+f_Abs_stom  = 0;
+
+s_jeju_ratio = 1;
+
+# Switches off intestine epithilia and kidney metabolite
+Vmax_met_vitro_intestine = 0;
+
+# put peff ratio distributions
+Distrib(Peff_ratio_duod_jeju, LogNormal, 0.609222717,	1.671505774);
+Distrib(Peff_ratio_ileum_jeju, LogNormal, 0.677678179,	2.239434348);
+Distrib(Peff_ratio_colon_jeju, LogNormal, 0.326875234,	4.632878989);# rm. outlier one
+
+# using mean of post distribution\n')
+  peff <- paste("Peff = ", Papp_in_vitro_envir.che$Papp_dm_h[i], ";\n", sep="")
+  cat(peff)
+  cat('Fu_plasma = 0.2021;      
+Fu_vitro_liver = 0.0711;      
+Kpuu_liver =  4.5388;                        
+Vmax_met_vitro_liver = 0.0009; 
+
+# Weibull delayed release parameters
+Weibull_slope_IR = 1; 
+Weibull_slope_SR = 1; 
+Weibull_slope_ER = 1.7802;
+Weibull_scale_IR = 0.1741;
+Weibull_scale_SR = 1.2392; 
+Weibull_scale_ER = 2.1054;
+
+Simulation{
+  
+  BDM = 73.4; 
+  R_type = 0; 
+
+  G_immediate_d = 1;
+  Oral_dose_rate = 312.8389; #312.8389
+
+  PrintStep (C_blood, 1,10000, 100);
+  PrintStep (C_ss_equ, 1, 10000, 100);
+  PrintStep (F_bio, 1, 10000, 100);
+
+};
+
+END.')      
+  
+  sink()
+  
+  out <- mcsim(model, file.name)
+
+  vars <- names(out)
+  index <- which(vars == "C_blood_1.1" | vars == "F_bio_1.101")
+  mc.sim <- apply(out[index[1]:index[2]], 2, quantile,  c(0.5, 0.025, 0.975)) %>% t()
+  mc.sim <- as.data.frame(mc.sim)
+  
+  Papp_in_vitro_envir.che[i, c(7:9)] <- mc.sim[(101*3), ] # put %abs into the "mc_sim_results"
+  
+  write.csv(Papp_in_vitro_envir.che, "outputs/Envir.che_Papp_in vitro_prediction_all.csv")
+  file.remove(paste("MCSim/enviro_chem_mc_", i, ".in", sep=""))
+  print(i)
+}
+
+# observed data: environmental in vitro Papp 
+# prediction method: using cplon ration (in file: Predict envir. chem. in vitro abs (using ratio Peff_colon as denominator) - setpt)
+Papp_in_vitro_envir.che$abs_med_colon.R <- NA
+Papp_in_vitro_envir.che$abs_LCL_colon.R <- NA 
+Papp_in_vitro_envir.che$abs_UCL_colon.R <- NA
+
+for (i in 1:9){
+  
+  file.name <- paste("enviro_chem_mc_", i, ".in", sep="")
+  
+  cat("Integrate (Lsodes, 1e-12, 1e-12, 1);\n\n", file = file.name)
+  sink(file.name, append=TRUE)
+  cat('SetPoints ("","setpts.out",0,
+           Peff_ratio_duod_colon, Peff_ratio_jeju_colon, Peff_ratio_ileum_colon); 
+
+# Absorption on(1)/off(0) switches
+f_Abs_stom  = 0;
+
+s_jeju_ratio = 0;
+
+# Switches off intestine epithilia and kidney metabolite
+Vmax_met_vitro_intestine = 0;
+
+# using mean of post distribution\n')
+  peff <- paste("Peff = ", Papp_in_vitro_envir.che$Papp_dm_h[i], ";\n", sep="")
+  cat(peff)
+  cat('Fu_plasma = 0.2021;      
+Fu_vitro_liver = 0.0711;      
+Kpuu_liver =  4.5388;                        
+Vmax_met_vitro_liver = 0.0009; 
+
+# Weibull delayed release parameters
+Weibull_slope_IR = 1; 
+Weibull_slope_SR = 1; 
+Weibull_slope_ER = 1.7802;
+Weibull_scale_IR = 0.1741;
+Weibull_scale_SR = 1.2392; 
+Weibull_scale_ER = 2.1054;
+
+Simulation{
+  
+  BDM = 73.4; 
+  R_type = 0; 
+
+  G_immediate_d = 1;
+  Oral_dose_rate = 312.8389; #312.8389
+
+  PrintStep (C_blood, 1,10000, 100);
+  PrintStep (C_ss_equ, 1, 10000, 100);
+  PrintStep (F_bio, 1, 10000, 100);
+
+};
+
+END.')      
+  
+  sink()
+  
+  out <- mcsim(model, file.name)
+
+  vars <- names(out)
+  index <- which(vars == "C_blood_1.1" | vars == "F_bio_1.101")
+  mc.sim <- apply(out[index[1]:index[2]], 2, quantile,  c(0.5, 0.025, 0.975)) %>% t()
+  mc.sim <- as.data.frame(mc.sim)
+  
+  Papp_in_vitro_envir.che[i, c(10:12)] <- mc.sim[(101*3), ] # put %abs into the "mc_sim_results"
+  
+  write.csv(Papp_in_vitro_envir.che, "outputs/Envir.che_Papp_in vitro_prediction_all.csv")
+  file.remove(paste("MCSim/enviro_chem_mc_", i, ".in", sep=""))
+  print(i)
+}
+
+# observed data: environmental in vitro Papp 
+# prediction method: using jeju ration with IVIVE ratio (in file: Predict envir. chem. in vitro abs (using ratio Peff_juje as denominator with new IVIVE.R))
+Papp_in_vitro_envir.che$abs_med_jeju.R_ivive <- NA
+Papp_in_vitro_envir.che$abs_LCL_jeju.R_ivive <- NA 
+Papp_in_vitro_envir.che$abs_UCL_jeju.R_ivive <- NA
+
+for (i in 1:9){
+  
+  file.name <- paste("enviro_chem_mc_", i, ".in", sep="")
+  
+  cat("Integrate (Lsodes, 1e-12, 1e-12, 1);\n\n", file = file.name)
+  sink(file.name, append=TRUE)
+  cat('MonteCarlo ("",10000,11920);
+
+# Absorption on(1)/off(0) switches
+f_Abs_stom  = 0;
+
+s_jeju_ratio = 1;
+
+# Switches off intestine epithilia and kidney metabolite
+Vmax_met_vitro_intestine = 0;
+
+# put peff ratio distributions
+Distrib(Peff_ratio_duod_jeju, LogNormal, 0.609222717,	1.671505774);
+Distrib(Peff_ratio_ileum_jeju, LogNormal, 0.677678179,	2.239434348);
+Distrib(Peff_ratio_colon_jeju, LogNormal, 0.326875234,	4.632878989);# rm. outlier one
+Distrib(Peff_ratio_ivive, LogNormal, 0.05916452,	3.766265);
+
+# using mean of post distribution\n')
+  peff <- paste("Peff = ", Papp_in_vitro_envir.che$Papp_dm_h[i], ";\n", sep="")
+  cat(peff)
+  cat('Fu_plasma = 0.2021;      
+Fu_vitro_liver = 0.0711;      
+Kpuu_liver =  4.5388;                        
+Vmax_met_vitro_liver = 0.0009; 
+
+# Weibull delayed release parameters
+Weibull_slope_IR = 1; 
+Weibull_slope_SR = 1; 
+Weibull_slope_ER = 1.7802;
+Weibull_scale_IR = 0.1741;
+Weibull_scale_SR = 1.2392; 
+Weibull_scale_ER = 2.1054;
+
+Simulation{
+  
+  BDM = 73.4; 
+  R_type = 0; 
+
+  G_immediate_d = 1;
+  Oral_dose_rate = 312.8389; #312.8389
+
+  PrintStep (C_blood, 1,10000, 100);
+  PrintStep (C_ss_equ, 1, 10000, 100);
+  PrintStep (F_bio, 1, 10000, 100);
+
+};
+
+END.')      
+  
+  sink()
+  
+  out <- mcsim(model, file.name)
+
+  vars <- names(out)
+  index <- which(vars == "C_blood_1.1" | vars == "F_bio_1.101")
+  mc.sim <- apply(out[index[1]:index[2]], 2, quantile,  c(0.5, 0.025, 0.975)) %>% t()
+  mc.sim <- as.data.frame(mc.sim)
+  
+  Papp_in_vitro_envir.che[i, c(13:15)] <- mc.sim[(101*3), ] # put %abs into the "mc_sim_results"
+  
+  write.csv(Papp_in_vitro_envir.che, "outputs/Envir.che_Papp_in vitro_prediction_all.csv")
+  file.remove(paste("MCSim/enviro_chem_mc_", i, ".in", sep=""))
+  print(i)
+}
+
+
+# observed data: drug in vitro Papp (new dataset 162 drugs) 
+# prediction method: using jeju ratio with IVIVE ratio (in file: Predict drug in vitro abs (using ratio Peff_juje as denominator with new IVIVE.R)_162drugs)
+Papp_in_vitro_newdata <- read.csv("DATA/in vitro_papp_abs_162drugs.csv")
+Papp_in_vitro_newdata <- Papp_in_vitro_newdata[, -c(1,7)]
+colnames(Papp_in_vitro_newdata) <- c("chemical", "Papp", "Fa", "ref.", "drug.class")
+Papp_in_vitro_newdata$Papp_dm_h <- Papp_in_vitro_newdata$Papp*360
+Papp_in_vitro_newdata$abs_med_jeju.R_ivive <- NA
+Papp_in_vitro_newdata$abs_LCL_jeju.R_ivive <- NA 
+Papp_in_vitro_newdata$abs_UCL_jeju.R_ivive <- NA
+
+for (i in 1:162){
+  
+  file.name <- paste("enviro_chem_mc_", i, ".in", sep="")
+  
+  cat("Integrate (Lsodes, 1e-12, 1e-12, 1);\n\n", file = file.name)
+  sink(file.name, append=TRUE)
+  cat('MonteCarlo ("",10000,11920);
+
+# Absorption on(1)/off(0) switches
+f_Abs_stom  = 0;
+
+s_jeju_ratio = 1;
+
+# Switches off intestine epithilia and kidney metabolite
+Vmax_met_vitro_intestine = 0;
+
+# put peff ratio distributions
+Distrib(Peff_ratio_duod_jeju, LogNormal, 0.609222717,	1.671505774);
+Distrib(Peff_ratio_ileum_jeju, LogNormal, 0.677678179,	2.239434348);
+Distrib(Peff_ratio_colon_jeju, LogNormal, 0.326875234,	4.632878989);# rm. outlier one
+Distrib(Peff_ratio_ivive, LogNormal, 0.05916452,	3.766265);
+
+# using mean of post distribution\n')
+  peff <- paste("Peff = ", Papp_in_vitro_newdata$Papp_dm_h[i], ";\n", sep="")
+  cat(peff)
+  cat('Fu_plasma = 0.2021;      
+Fu_vitro_liver = 0.0711;      
+Kpuu_liver =  4.5388;                        
+Vmax_met_vitro_liver = 0.0009; 
+
+# Weibull delayed release parameters
+Weibull_slope_IR = 1; 
+Weibull_slope_SR = 1; 
+Weibull_slope_ER = 1.7802;
+Weibull_scale_IR = 0.1741;
+Weibull_scale_SR = 1.2392; 
+Weibull_scale_ER = 2.1054;
+
+Simulation{
+  
+  BDM = 73.4; 
+  R_type = 0; 
+
+  G_immediate_d = 1;
+  Oral_dose_rate = 312.8389; #312.8389
+
+  PrintStep (C_blood, 1,10000, 100);
+  PrintStep (C_ss_equ, 1, 10000, 100);
+  PrintStep (F_bio, 1, 10000, 100);
+
+};
+
+END.')      
+  
+  sink()
+  
+  out <- mcsim(model, file.name)
+  
+  vars <- names(out)
+  index <- which(vars == "C_blood_1.1" | vars == "F_bio_1.101")
+  mc.sim <- apply(out[index[1]:index[2]], 2, quantile,  c(0.5, 0.025, 0.975)) %>% t()
+  mc.sim <- as.data.frame(mc.sim)
+  
+  Papp_in_vitro_newdata[i, c(7:9)] <- mc.sim[(101*3), ] # put %abs into the "mc_sim_results"
+  
+  write.csv(Papp_in_vitro_newdata, "outputs/Drug_Papp_newdata162drugs_in vitro_prediction_jeju_ivive.csv")
+  file.remove(paste("MCSim/enviro_chem_mc_", i, ".in", sep=""))
+  print(i)
+}
+
+```
+
+
+```{r Plotting Figure5_relationship of permeability and %abs}
+# Load MC results
+mc_sim_results_jeju <- read.csv("outputs/rela_p_abs_SI+LI_jeju as base.csv")
+rownames(mc_sim_results_jeju) <- mc_sim_results_jeju$X
+mc_sim_results_jeju <- mc_sim_results_jeju[,-1]
+
+mc_sim_results_colon <- read.csv("outputs/rela_p_abs_SI+LI_colon as base_cov.csv")
+rownames(mc_sim_results_colon) <- mc_sim_results_colon$X
+mc_sim_results_colon <- mc_sim_results_colon[,-1]
+
+mc_sim_results_jeju_ivive <- read.csv("outputs/rela_p_abs_SI+LI_newivive_jeju as base.csv")
+rownames(mc_sim_results_jeju_ivive) <- mc_sim_results_jeju_ivive$X
+mc_sim_results_jeju_ivive <- mc_sim_results_jeju_ivive[,-1]
+
+# Load drug in vivo data
+Peff_in_vivo <- read.csv("outputs/Drug_Peff_in vivo_prediction_using jeju as base.csv")
+rownames(Peff_in_vivo) <- Peff_in_vivo$X
+Peff_in_vivo <- Peff_in_vivo[,-1]
+
+# Load drug in vitro data
+Papp_in_vitro <- read.csv("outputs/Drug_Papp_in vitro_prediction_all.csv")
+rownames(Papp_in_vitro) <- Papp_in_vitro$X
+Papp_in_vitro <- Papp_in_vitro[,-1]
+table(as.character(Papp_in_vitro$chemical)) 
+
+# Load environmental chemicals in vitro data
+Papp_in_vitro_envir.che <- read.csv("outputs/Envir.che_Papp_in vitro_prediction_all.csv")
+Papp_in_vitro_envir.che$chemical[4] <- "Coumarin (Envir.)"
+rownames(Papp_in_vitro_envir.che) <- Papp_in_vitro_envir.che$X
+Papp_in_vitro_envir.che <- Papp_in_vitro_envir.che[,-1]
+
+
+abs.diff_drug_in_vivo.1 <- Peff_in_vivo[, c(1, 3, 5, 7, 8, 9)]
+abs.diff_drug_in_vivo.1$Type <- "Drug_in_vivo"
+abs.diff_drug_in_vitro.1 <- Papp_in_vitro[, c(1, 3, 5, 7, 8, 9)]
+abs.diff_drug_in_vitro.1$Type <- "Drug_in_vitro"
+abs.diff_env.che_in_vitro.1 <- Papp_in_vitro_envir.che[, c(1, 3, 5, 7, 8, 9)]
+abs.diff_env.che_in_vitro.1$drug.class <- factor(abs.diff_env.che_in_vitro.1$drug.class)
+abs.diff_env.che_in_vitro.1$Type <- "Env.che_in_vitro"
+abs.diff_jeju <- rbind(abs.diff_drug_in_vivo.1, abs.diff_drug_in_vitro.1, abs.diff_env.che_in_vitro.1)
+abs.diff_jeju$Type <- factor(abs.diff_jeju$Type)
+abs.diff_jeju$drug.class <- factor(abs.diff_jeju$drug.class)
+abs.diff_jeju$Diff_med <- abs.diff_jeju$abs_med_jeju.R - abs.diff_jeju$Fa
+abs.diff_jeju$Diff_LCL <- abs.diff_jeju$abs_LCL_jeju.R - abs.diff_jeju$Fa
+abs.diff_jeju$Diff_UCL <- abs.diff_jeju$abs_UCL_jeju.R - abs.diff_jeju$Fa
+
+abs.diff_drug_in_vitro.2 <- Papp_in_vitro[, c(1, 3, 5, 10, 11, 12)]
+abs.diff_drug_in_vitro.2$Type <- "Drug_in_vitro"
+abs.diff_env.che_in_vitro.2 <- Papp_in_vitro_envir.che[, c(1, 3, 5, 10, 11, 12)]
+abs.diff_env.che_in_vitro.2$drug.class <- factor(abs.diff_env.che_in_vitro.2$drug.class)
+abs.diff_env.che_in_vitro.2$Type <- "Env.che_in_vitro"
+abs.diff_colon <- rbind(abs.diff_drug_in_vitro.2, abs.diff_env.che_in_vitro.2)
+abs.diff_colon$Type <- factor(abs.diff_colon$Type)
+abs.diff_colon$drug.class <- factor(abs.diff_colon$drug.class)
+abs.diff_colon$Diff_med <- abs.diff_colon$abs_med_colon.R - abs.diff_colon$Fa
+abs.diff_colon$Diff_LCL <- abs.diff_colon$abs_LCL_colon.R - abs.diff_colon$Fa
+abs.diff_colon$Diff_UCL <- abs.diff_colon$abs_UCL_colon.R - abs.diff_colon$Fa
+
+abs.diff_drug_in_vitro.3 <- Papp_in_vitro[, c(1, 3, 5, 13, 14, 15)]
+abs.diff_drug_in_vitro.3$Type <- "Drug_in_vitro"
+abs.diff_env.che_in_vitro.3 <- Papp_in_vitro_envir.che[, c(1, 3, 5, 13, 14, 15)]
+abs.diff_env.che_in_vitro.3$drug.class <- factor(abs.diff_env.che_in_vitro.3$drug.class)
+abs.diff_env.che_in_vitro.3$Type <- "Env.che_in_vitro"
+abs.diff_jeju_ivive <- rbind(abs.diff_drug_in_vitro.3, abs.diff_env.che_in_vitro.3)
+abs.diff_jeju_ivive$Type <- factor(abs.diff_jeju_ivive$Type)
+abs.diff_jeju_ivive$drug.class <- factor(abs.diff_jeju_ivive$drug.class)
+abs.diff_jeju_ivive$Diff_med <- abs.diff_jeju_ivive$abs_med_jeju.R_ivive - abs.diff_jeju_ivive$Fa
+abs.diff_jeju_ivive$Diff_LCL <- abs.diff_jeju_ivive$abs_LCL_jeju.R_ivive - abs.diff_jeju_ivive$Fa
+abs.diff_jeju_ivive$Diff_UCL <- abs.diff_jeju_ivive$abs_UCL_jeju.R_ivive - abs.diff_jeju_ivive$Fa
+
+Peff_in_vivo$drug.class <- factor(Peff_in_vivo$drug.class)
+Papp_in_vitro$drug.class <- factor(Papp_in_vitro$drug.class)
+Papp_in_vitro_envir.che$drug.class <- factor(Papp_in_vitro_envir.che$drug.class)
+
+
+p5.1 <- ggplot() + 
+  geom_ribbon(aes(x=mc_sim_results_jeju$Peff_cm_s, ymin = mc_sim_results_jeju$abs_LCL, ymax = mc_sim_results_jeju$abs_UCL), fill = "#f2f2f2") +
+  geom_line(aes(x=mc_sim_results_jeju$Peff_cm_s, y=mc_sim_results_jeju$abs_med), linetype = "solid", color="#495867", size = 1.1) + 
+  
+  geom_point(aes(x=Peff_in_vivo$Peff, y=Peff_in_vivo$Fa, color=Peff_in_vivo$drug.class), size=2, shape=21, fill="#FFFFFF80")+
+  geom_point(aes(x=Papp_in_vitro$Papp, y=Papp_in_vitro$Fa, color=Papp_in_vitro$drug.class), size=2, shape=16) +
+  geom_point(aes(x=Papp_in_vitro_envir.che$Papp, y=Papp_in_vitro_envir.che$Fa, color=Papp_in_vitro_envir.che$drug.class), size=2.2, shape=17) +
+  
+  scale_color_manual(values = c("#2b2d4295", "#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95")) +
+  
+  scale_x_log10(lim = c(1E-8,1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x))) +
+  
+  annotate("point", x=1.5e-4, y=40, color="#2b2d4295", size=2, shape=21) +
+  annotate("text", x=1.9e-4, y=40, label=expression(paste("Drug in vivo ", "P"[eff])), hjust=0, size = 2.8) +
+  
+  annotate("point", x=1.5e-4, y=30, color="#2b2d4295", size=2, shape=16) +
+  annotate("text", x=1.9e-4, y=30, label=expression(paste("Drug in vitro ", "P"[app])), hjust=0, size = 2.8) +
+  
+  annotate("point", x=1.5e-4, y=20, color="#2b2d4295", size=2.2, shape=17) +
+  annotate("text", x=1.9e-4, y=20, label=expression(paste("Environmental chemical in vitro ", "P"[app])), hjust=0, size = 2.8) +
+  
+  annotate("text", x=1e-8, y=98, label="A", hjust=0, fontface = "bold", size=5) +
+  
+  xlab(expression(paste("P"[eff], " or P"[app], " = Jejunum permeability (cm/s)"))) + ylab("Percentage of absorption")+
+  
+  theme_bw()+
+  theme(panel.border = element_rect(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(color = "black"),
+        axis.text = element_text(color = "black"))
+
+p5.2 <-  ggplot() + 
+  geom_ribbon(aes(x=mc_sim_results_colon$Peff_cm_s, ymin = mc_sim_results_colon$abs_LCL, ymax = mc_sim_results_colon$abs_UCL), fill = "#f2f2f2") +
+  geom_line(aes(x=mc_sim_results_colon$Peff_cm_s, y=mc_sim_results_colon$abs_med), linetype = "solid", color="#495867", size = 1.1) + 
+  
+  geom_point(aes(x=Papp_in_vitro$Papp, y=Papp_in_vitro$Fa, color=Papp_in_vitro$drug.class), size=2, shape=16) +
+  geom_point(aes(x=Papp_in_vitro_envir.che$Papp, y=Papp_in_vitro_envir.che$Fa, color=Papp_in_vitro_envir.che$drug.class), size=2.2, shape=17) +
+  
+  scale_color_manual(values = c("#2b2d4295", "#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95")) +
+  
+  scale_x_log10(lim = c(1E-8,1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x))) +
+  
+  #annotate("point", x=1.5e-4, y=30, color="#FD490299", size=2, shape=16) +
+  #annotate("text", x=1.9e-4, y=30, label=expression(paste("Drug in vitro ", "P"[app])), hjust=0, size = 2.8) +
+  
+  #annotate("point", x=1.5e-4, y=20, color="#009513", size=2, shape=24, fill = "#00951350") +
+  #annotate("text", x=1.9e-4, y=20, label=expression(paste("Environmental chemical in vitro ", "P"[app])), hjust=0, size = 2.8) +
+  
+  
+  annotate("text", x=1e-8, y=98, label="B", hjust=0, fontface = "bold", size=5) +
+  
+  xlab(expression(paste("P"[app], " = Colon permeability (cm/s)"))) + ylab("Percentage of absorption")+
+  
+  theme_bw()+
+  theme(panel.border = element_rect(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(color = "black"),
+        axis.text = element_text(color = "black"))
+
+p5.3 <- ggplot() +   
+  geom_ribbon(aes(x=mc_sim_results_jeju_ivive$Peff_cm_s, ymin = mc_sim_results_jeju_ivive$abs_LCL, ymax = mc_sim_results_jeju_ivive$abs_UCL), fill = "#f2f2f2") +
+  geom_line(aes(x=mc_sim_results_jeju_ivive$Peff_cm_s, y=mc_sim_results_jeju_ivive$abs_med), linetype = "solid", color="#495867", size = 1.1) + 
+  
+  geom_point(aes(x=Papp_in_vitro$Papp, y=Papp_in_vitro$Fa, color=Papp_in_vitro$drug.class), size=2, shape=16) +
+  geom_point(aes(x=Papp_in_vitro_envir.che$Papp, y=Papp_in_vitro_envir.che$Fa, color=Papp_in_vitro_envir.che$drug.class), size=2.2, shape=17) +
+  
+  scale_color_manual(values = c("#2b2d4295", "#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95")) +
+  
+  scale_x_log10(lim = c(1E-8,1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x))) +
+  
+  #annotate("point", x=1.5e-4, y=30, color="#FD490299", size=2, shape=16) +
+  #annotate("text", x=1.9e-4, y=30, label=expression(paste("Drug in vitro ", "P"[app])), hjust=0, size = 2.8) +
+  
+  #annotate("point", x=1.5e-4, y=20, color="#009513", size=2, shape=24, fill = "#00951350") +
+  #annotate("text", x=1.9e-4, y=20, label=expression(paste("Environmental chemical in vitro ", "P"[app])), hjust=0, size = 2.8) +
+  
+  
+  annotate("text", x=1e-8, y=98, label="C", hjust=0, fontface = "bold", size=5) +
+  
+  xlab(expression(paste("P"[app], symbol('\256'), "P"[eff],  " = Jejunum permeability (cm/s)"))) + ylab("Percentage of absorption")+
+  
+  theme_bw()+
+  theme(panel.border = element_rect(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(color = "black"),
+        axis.text = element_text(color = "black"))
+
+abs.diff_jeju$order <- as.numeric(abs.diff_jeju$drug.class)*10000 + abs.diff_jeju$Diff_med
+abs.diff_jeju$order[abs.diff_jeju$Type == "Env.che_in_vitro"] <- (as.numeric(abs.diff_jeju$drug.class[abs.diff_jeju$Type == "Env.che_in_vitro"])+5)*10000+abs.diff_jeju$Diff_med[abs.diff_jeju$Type == "Env.che_in_vitro"]
+abs.diff_jeju$chemical <- with(abs.diff_jeju, reorder(chemical, order))
+p5.4 <- ggplot(abs.diff_jeju, aes(x= chemical, y = Diff_med)) +
+  geom_segment(aes(x=chemical, xend=chemical, y=Diff_LCL, yend=Diff_UCL, color=drug.class), size=0.5) +
+  geom_point(aes(color = drug.class, shape = Type), size=1) +
+  scale_shape_manual(values = c(16, 21, 17)) +
+  scale_color_manual(values = c("#2b2d4295", "#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95", "#6CBF7095"))+
+  annotate("text", x=78.5, y=-95, label="D", hjust=0, fontface = "bold", size=5) +
+  scale_y_continuous(breaks=c(-100, -50, -20, 0, 20, 50, 100))+
+  #facet_grid(~Type)+
+  theme_bw()+
+  coord_flip() +
+  ylab(expression(paste(Delta, "F"[abs]))) + xlab("")+
+  theme(panel.border = element_rect(colour = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_line(color = "gray", linetype = "dashed"),
+        panel.grid.minor = element_blank(),
+        legend.position="none",
+        axis.ticks.x = element_line(color = "black", size = 0.5),
+        axis.ticks.y = element_blank(),
+        axis.title.x = element_text(color = "black", face = "bold"),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(color = "black", vjust = -0.3),
+        #axis.text.y = element_blank(),
+        axis.text.y = element_text(color = "black", size = 4),
+        strip.text = element_text(size=10, face = "bold"))
+
+abs.diff_colon$order <- as.numeric(abs.diff_colon$drug.class)*10000 + abs.diff_colon$Diff_med
+abs.diff_colon$order[abs.diff_colon$Type == "Env.che_in_vitro"] <- (as.numeric(abs.diff_colon$drug.class[abs.diff_colon$Type == "Env.che_in_vitro"])+5)*10000+abs.diff_colon$Diff_med[abs.diff_colon$Type == "Env.che_in_vitro"]
+abs.diff_colon$chemical <- with(abs.diff_colon, reorder(chemical, order))
+p5.5 <- ggplot(abs.diff_colon, aes(x= chemical, y = Diff_med)) +
+  geom_segment(aes(x=chemical, xend=chemical, y=Diff_LCL, yend=Diff_UCL, color=drug.class), size=0.5) +
+  geom_point(aes(color = drug.class, shape = Type), size=1) +
+  scale_shape_manual(values = c(16, 17)) +
+  scale_color_manual(values = c("#2b2d4295", "#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95", "#6CBF7095"))+
+  annotate("text", x=60.5, y=-95, label="E", hjust=0, fontface = "bold", size=5) +
+  scale_y_continuous(breaks=c(-100, -50, -20, 0, 20, 50, 100))+
+  #facet_grid(~Type)+
+  theme_bw()+
+  coord_flip() +
+  ylab(expression(paste(Delta, "F"[abs]))) + xlab("")+
+  theme(panel.border = element_rect(colour = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_line(color = "gray", linetype = "dashed"),
+        panel.grid.minor = element_blank(),
+        legend.position="none",
+        axis.ticks.x = element_line(color = "black", size = 0.5),
+        axis.ticks.y = element_blank(),
+        axis.title.x = element_text(color = "black", face = "bold"),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(color = "black", vjust = -0.3),
+        #axis.text.y = element_blank(),
+        axis.text.y = element_text(color = "black", size = 4),
+        strip.text = element_text(size=10, face = "bold"))
+
+abs.diff_jeju_ivive$order <- as.numeric(abs.diff_jeju_ivive$drug.class)*10000 + abs.diff_jeju_ivive$Diff_med
+abs.diff_jeju_ivive$order[abs.diff_jeju_ivive$Type == "Env.che_in_vitro"] <- (as.numeric(abs.diff_jeju_ivive$drug.class[abs.diff_jeju_ivive$Type == "Env.che_in_vitro"])+5)*10000+abs.diff_jeju_ivive$Diff_med[abs.diff_jeju_ivive$Type == "Env.che_in_vitro"]
+abs.diff_jeju_ivive$chemical <- with(abs.diff_jeju_ivive, reorder(chemical, order))
+p5.6 <- ggplot(abs.diff_jeju_ivive, aes(x= chemical, y = Diff_med)) +
+  geom_segment(aes(x=chemical, xend=chemical, y=Diff_LCL, yend=Diff_UCL, color=drug.class), size=0.5) +
+  geom_point(aes(color = drug.class, shape = Type), size=1) +
+  scale_shape_manual(values = c(16, 17)) +
+  scale_color_manual(values = c("#2b2d4295", "#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95", "#6CBF7095"))+
+  annotate("text", x=60.5, y=-95, label="F", hjust=0, fontface = "bold", size=5) +
+  scale_y_continuous(breaks=c(-100, -50, -20, 0, 20, 50, 100))+
+  #facet_grid(~Type)+
+  theme_bw()+
+  coord_flip() +
+  ylab(expression(paste(Delta, "F"[abs]))) + xlab("")+
+  theme(panel.border = element_rect(colour = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_line(color = "gray", linetype = "dashed"),
+        panel.grid.minor = element_blank(),
+        legend.position="none",
+        axis.ticks.x = element_line(color = "black", size = 0.5),
+        axis.ticks.y = element_blank(),
+        axis.title.x = element_text(color = "black", face = "bold"),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(color = "black", vjust = -0.3),
+        #axis.text.y = element_blank(),
+        axis.text.y = element_text(color = "black", size = 4),
+        strip.text = element_text(size=10, face = "bold"))
+
+tiff(width = 12.2, height = 15, "plots/Figure.5.tiff", units = "in", res=600)
+p5.1 + p5.4 + p5.2 + p5.5 + p5.3 + p5.6 + plot_layout(widths = c(1.2/2, 0.8/2), height = c(4, 4, 4))
+dev.off()
+
+
+```
+
+
+```{r Plotting Figure.S1_css_check and FigureS3_relationship of permeability and %abs with new data (162 drugs)}
+
+# ---------- Plotting: Figure.S1_css_check ----------
+# Check Css equation workable
+css_check_data <- rbind(mc_sim_results_jeju[, c(1,4)], mc_sim_results_colon[, c(1,4)])
+css_check_data$ratio <- rep(c("A. Ratio_jeju", "B. Ratio_colon"), each = 25)
+
+ggplot(css_check_data)+
+  geom_point(aes(x=C_blood_med, y=Css_med, colour=ratio), alpha=0.6, size=3, shape=16) +
+  geom_abline(intercept = 0, slope = 1, linetype=2)+
+  
+  facet_wrap(~ ratio) +
+  
+  scale_x_log10(lim = c(1E-5, 2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x))) +
+  
+  scale_y_log10(lim = c(1E-5, 2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x))) +
+  
+  theme_bw() + 
+  xlab("Css from PBPK (microM)") +
+  ylab("Css from equation (microM)")+
+  theme(text=element_text(family="sans", face="plain", color="#000000", size=10, hjust=0.5, vjust=0.5), 
+        legend.position = "none",
+        #panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(color = "black", face = "bold"),
+        axis.text = element_text(color = "black", face = "bold"),
+        strip.text.x = element_text(size=11, face = "bold"))
+
+ggsave("plots/Figure.S1.tiff", height = 3.5, width = 7.5, units="in")
+
+
+# ---------- FigureS3_relationship of permeability and %abs with new data (162 drugs) ----------
+
+Papp_in_vitro_newdata <- read.csv("outputs/Drug_Papp_newdata162drugs_in vitro_prediction_jeju_ivive.csv")
+rownames(Papp_in_vitro_newdata) <- Papp_in_vitro_newdata$X
+Papp_in_vitro_newdata <- Papp_in_vitro_newdata[,-1]
+Papp_in_vitro_newdata$drug.class <- factor(Papp_in_vitro_newdata$drug.class)
+
+abs.diff_drug_in_vitro.4 <- Papp_in_vitro_newdata[, c(1, 3, 5, 7, 8, 9)]
+abs.diff_drug_in_vitro.4$Type <- "Drug_in_vitro"
+abs.diff_jeju_ivive_newdata <- abs.diff_drug_in_vitro.4
+abs.diff_jeju_ivive_newdata$Diff_med <- abs.diff_jeju_ivive_newdata$abs_med_jeju.R_ivive - abs.diff_jeju_ivive_newdata$Fa
+abs.diff_jeju_ivive_newdata$Diff_LCL <- abs.diff_jeju_ivive_newdata$abs_LCL_jeju.R_ivive - abs.diff_jeju_ivive_newdata$Fa
+abs.diff_jeju_ivive_newdata$Diff_UCL <- abs.diff_jeju_ivive_newdata$abs_UCL_jeju.R_ivive - abs.diff_jeju_ivive_newdata$Fa
+abs.diff_jeju_ivive_newdata$drug.class <- factor(abs.diff_jeju_ivive_newdata$drug.class)
+
+ps3.1 <- ggplot() + 
+  geom_ribbon(aes(x=mc_sim_results_jeju_ivive$Peff_cm_s, ymin = mc_sim_results_jeju_ivive$abs_LCL, ymax = mc_sim_results_jeju_ivive$abs_UCL), fill = "#f2f2f2") +
+  geom_line(aes(x=mc_sim_results_jeju_ivive$Peff_cm_s, y=mc_sim_results_jeju_ivive$abs_med), linetype = "solid", color="#495867", size = 1.1) + 
+  
+  geom_point(aes(x=Papp_in_vitro_newdata$Papp, y=Papp_in_vitro_newdata$Fa, color=Papp_in_vitro_newdata$drug.class), size=2, shape=16) +
+  scale_color_manual(values = c("#2b2d4295", "#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95")) +
+  scale_x_log10(lim = c(1E-8,1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x))) +
+  
+  annotate("text", x=1e-8, y=98, label="A", hjust=0, fontface = "bold", size=5) +
+  
+  xlab(expression(paste("P"[app], symbol('\256'), "P"[eff],  " = Jejunum permeability (cm/s)"))) + ylab("Percentage of absorption")+
+  
+  theme_bw()+
+  theme(panel.border = element_rect(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(color = "black"),
+        axis.text = element_text(color = "black"))
+
+abs.diff_jeju_ivive_newdata$order <- as.numeric(abs.diff_jeju_ivive_newdata$drug.class)*1000 + abs.diff_jeju_ivive_newdata$Diff_med
+abs.diff_jeju_ivive_newdata$chemical = with(abs.diff_jeju_ivive_newdata, reorder(chemical, order))
+ps3.2 <- ggplot(abs.diff_jeju_ivive_newdata, aes(x= chemical, y = Diff_med)) +
+  geom_segment(aes(x=chemical, xend=chemical, y=Diff_LCL, yend=Diff_UCL, color=drug.class), size=0.5) +
+  geom_point(aes(color = drug.class),shape = 16, size=1) +
+  scale_color_manual(values = c("#2b2d4295", "#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95"))+
+  annotate("text", x=105, y=-95, label="B", hjust=0, fontface = "bold", size=5) +
+  scale_y_continuous(breaks=c(-100, -50, -20, 0, 20, 50, 100))+
+  theme_light() +
+  coord_flip() +
+  ylab(expression(paste(Delta, "F"[abs]))) + xlab("")+
+  theme(panel.border = element_rect(colour = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_line(color = "gray", linetype = "dashed"),
+        panel.grid.minor = element_blank(),
+        legend.position="none",
+        axis.ticks.x = element_line(color = "black", size = 0.5),
+        axis.ticks.y = element_blank(),
+        axis.title.x = element_text(color = "black", face = "bold"),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(color = "black", vjust = -0.3),
+        #axis.text.y = element_blank(),
+        axis.text.y = element_text(color = "black", size = 6))
+
+
+tiff(width = 18, height = 9, "plots/Figure.S3.tiff", units = "in", res=600)
+ps3.1 + ps3.2 + plot_layout(widths = c(1.2/2, 0.8/2))
+dev.off()
+
+
+Papp_in_vitro_newdata[, c(8,9)] <- round(Papp_in_vitro_newdata[, c(8,9)])
+Papp_in_vitro_newdata$within_95CI_jeju_ivive[Papp_in_vitro_newdata$Fa >= Papp_in_vitro_newdata$abs_LCL_jeju.R_ivive & Papp_in_vitro_newdata$Fa <=  Papp_in_vitro_newdata$abs_UCL_jeju.R_ivive] <- 1
+sum(Papp_in_vitro_newdata$within_95CI_jeju_ivive, na.rm = T)
+
+
+```
+
+
+```{r Prediction of Fabs for Environmental Chemicals and Plotting Figure6_pedicted Fabs of environmental chemicals_with 95CI}
+# ---------- Prediction of Fabs for HTTK Chemicals ----------
+Caco2_QR_withEPAlist <- read.csv("DATA/Caco2_QR_withEPAlist_Fabs.csv")
+Caco2_QR_withEPAlist$Papp <- (10^(Caco2_QR_withEPAlist$CalculatedLogPapp))*360 #dm/hr
+Caco2_QR_withEPAlist$abs_med_jeju.R_ivive <- NA
+Caco2_QR_withEPAlist$abs_LCL_jeju.R_ivive <- NA
+Caco2_QR_withEPAlist$abs_UCL_jeju.R_ivive <- NA
+
+
+# used jeju ratio and ivivc ratio
+for(i in 608:609){
+  
+  file.name <- paste("enviro_chem_mc_", i, ".in", sep="")
+  
+  cat("Integrate (Lsodes, 1e-12, 1e-12, 1);\n\n", file = file.name)
+  sink(file.name, append=TRUE)
+  cat('MonteCarlo ("",10000,11920);\n\n')
+  
+  cat('f_Abs_stom  = 0;\n')
+  cat('s_jeju_ratio = 1;\n\n')
+  cat('Vmax_met_vitro_intestine = 0;\n\n')
+  
+  cat('Distrib(Peff_ratio_duod_jeju, LogNormal, 0.609222717,	1.671505774);\n')
+  cat('Distrib(Peff_ratio_ileum_jeju, LogNormal, 0.677678179,	2.239434348);\n')
+  cat('Distrib(Peff_ratio_colon_jeju, LogNormal, 0.326875234,	4.632878989);\n')
+  cat('Distrib(Peff_ratio_ivive, LogNormal, 0.05916452,	3.766265);\n\n')
+  
+  peff <- paste("Peff = ", Caco2_QR_withEPAlist$Papp[i], ";\n", sep="")
+  cat(peff)
+  cat('Fu_plasma = 0.2021;\n')      
+  cat('Fu_vitro_liver = 0.0711;\n')     
+  cat('Kpuu_liver =  4.5388;\n')                        
+  cat('Vmax_met_vitro_liver = 0.0009;\n\n') 
+  
+  cat('Weibull_slope_IR = 1;\n') 
+  cat('Weibull_slope_SR = 1;\n') 
+  cat('Weibull_slope_ER = 1.7802;\n')
+  cat('Weibull_scale_IR = 0.1741;\n')
+  cat('Weibull_scale_SR = 1.2392;\n') 
+  cat('Weibull_scale_ER = 2.1054;\n\n')
+  
+  cat('Simulation{\n\n')
+  cat('BDM = 73.4;\n') 
+  cat('R_type = 0;\n') 
+  cat('G_immediate_d = 1;\n')
+  cat('Oral_dose_rate = 312.8389;\n')
+  cat('PrintStep (C_blood, 1,10000, 100);\n')
+  cat('PrintStep (C_ss_equ, 1, 10000, 100);\n')
+  cat('PrintStep (F_bio, 1, 10000, 100);};\n\n')
+  
+  cat('END.')
+  
+  sink()
+  
+  out <- mcsim(model, file.name)
+  
+  vars <- names(out)
+  index <- which(vars == "C_blood_1.1" | vars == "F_bio_1.101")
+  mc.sim <- apply(out[index[1]:index[2]], 2, quantile,  c(0.5, 0.025, 0.975)) %>% t()
+  mc.sim <- as.data.frame(mc.sim)
+  
+  Caco2_QR_withEPAlist[i, c(30:32)] <- mc.sim[(101*3), ] # put %abs into the "mc_sim_results"
+  
+  write.csv(Caco2_QR_withEPAlist, "outputs/Caco2_QR_withEPAlist_Fabs.csv")
+  file.remove(paste("MCSim/enviro_chem_mc_", i, ".in", sep=""))
+  print(i)
+}
+
+
+# ---------- Plotting: Figure.6_pedicted Fabs of environmental chemicals_with 95CI ----------
+Caco2_QR_withEPAlist <- read.csv("outputs/Caco2_QR_withEPAlist_Fabs.csv")
+Caco2_QR_withEPAlist <- Caco2_QR_withEPAlist[, -1]
+
+Caco2_QR_withEPAlist$CASRN <- with(Caco2_QR_withEPAlist, reorder(CASRN, abs_med_jeju.R_ivive))
+tiff(width = 12, height = 5, "plots/Figure.6.tiff", units = "in", res=300)
+ggplot(Caco2_QR_withEPAlist, aes(x= CASRN, y = abs_med_jeju.R_ivive)) +
+  geom_segment(aes(x=CASRN, xend=CASRN, y=abs_LCL_jeju.R_ivive, yend=abs_UCL_jeju.R_ivive), color = "#bde0fe", size = 0.3) +
+  geom_point(color = "#3a86ff", size = 1.5) +
+  #scale_shape_manual(values = c(16, 17, 21, 24)) + #Measured&Point | Measured&Range | Predicted&Point | Predicted&Range
+  #scale_color_manual(values = c("#165DF995", "#6CBF7095", "#F39C3695", "#C42A2A95"))+
+  #annotate("text", x=28.5, y=-95, label="F", hjust=0, fontface = "bold", size=5) +
+  #scale_y_continuous(breaks=c(-100, -50, -20, 0, 20, 50, 100))+
+  #facet_wrap(~Chemical.class, labeller = labeller(Chemical.class = new.labs))+
+  theme_bw()+
+  #coord_flip() +
+  ylab(expression(paste("F"[abs]))) + xlab("Chemicals")+
+  theme(panel.border = element_rect(colour = "black", size = 1.05),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_line(color = "black", size = 0.5),
+        axis.title.x = element_text(color = "black", size = 15),
+        axis.title.y = element_text(color = "black", size = 15),
+        axis.text.x = element_blank(), #element_text(color = "black", angle = 65, hjust=1, size = 3)
+        axis.text.y = element_text(color = "black", size = 12),
+        strip.text = element_text(size=10, face = "bold"))
+dev.off()
+
+
+# ---------- Plotting: Figure.S4_pedicted Fabs of environmental chemicals_with 95CI by list ----------
+Caco2_QR_withEPAlist$CASRN <- with(Caco2_QR_withEPAlist, reorder(CASRN, abs_med_jeju.R_ivive))
+FS4.1 <- 
+  ggplot(Caco2_QR_withEPAlist[which(Caco2_QR_withEPAlist$Envi.Che_CERAPP == "Y"),], aes(x= CASRN, y = abs_med_jeju.R_ivive)) +
+  geom_segment(aes(x=CASRN, xend=CASRN, y=abs_LCL_jeju.R_ivive, yend=abs_UCL_jeju.R_ivive), size = 0.3, color = "#8c8b8b30") +
+  geom_point(size = 0.8, color = "#00568F") +
+  #scale_shape_manual(values = c(16, 17, 21, 24)) + #Measured&Point | Measured&Range | Predicted&Point | Predicted&Range
+  #scale_color_manual(values = c("#165DF995", "#6CBF7095", "#F39C3695", "#C42A2A95"))+
+  #annotate("text", x=28.5, y=-95, label="F", hjust=0, fontface = "bold", size=5) +
+  #scale_y_continuous(breaks=c(-100, -50, -20, 0, 20, 50, 100))+
+  #facet_grid(~Type)+
+  theme_bw()+
+  #coord_flip() +
+  ggtitle("A. CERAPP (n = 276)")+
+  theme(panel.border = element_rect(colour = "black", size = 1.05),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(size=15,  face = "bold", color = "black"),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_line(color = "black", size = 0.5),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_blank(), #element_text(color = "black", angle = 65, hjust=1, size = 3)
+        axis.text.y = element_text(size=12, color = "black"))
+
+
+FS4.2 <- 
+  ggplot(Caco2_QR_withEPAlist[which(Caco2_QR_withEPAlist$Envi.Che_COMPARA == "Y"),], aes(x= CASRN, y = abs_med_jeju.R_ivive)) +
+  geom_segment(aes(x=CASRN, xend=CASRN, y=abs_LCL_jeju.R_ivive, yend=abs_UCL_jeju.R_ivive), size = 0.3, color = "#8c8b8b30") +
+  geom_point(size = 0.8, color = "#2A90CB") +
+  #scale_shape_manual(values = c(16, 17, 21, 24)) + #Measured&Point | Measured&Range | Predicted&Point | Predicted&Range
+  #scale_color_manual(values = c("#165DF995", "#6CBF7095", "#F39C3695", "#C42A2A95"))+
+  #annotate("text", x=28.5, y=-95, label="F", hjust=0, fontface = "bold", size=5) +
+  #scale_y_continuous(breaks=c(-100, -50, -20, 0, 20, 50, 100))+
+  #facet_grid(~Type)+
+  theme_bw()+
+  #coord_flip() +
+  ggtitle("B. COMPARA (n = 475)")+
+  theme(panel.border = element_rect(colour = "black", size = 1.05),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(size=15,  face = "bold", color = "black"),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_line(color = "black", size = 0.5),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_blank(), #element_text(color = "black", angle = 65, hjust=1, size = 3)
+        axis.text.y = element_text(size=12, color = "black"),
+        strip.text = element_text(size=10, face = "bold"))
+
+FS4.3 <- 
+  ggplot(Caco2_QR_withEPAlist[which(Caco2_QR_withEPAlist$Envi.Che_CPDAT == "Y"),], aes(x= CASRN, y = abs_med_jeju.R_ivive)) +
+  geom_segment(aes(x=CASRN, xend=CASRN, y=abs_LCL_jeju.R_ivive, yend=abs_UCL_jeju.R_ivive), size = 0.3, color = "#8c8b8b30") +
+  geom_point(size = 0.8, color = "#009B72") +
+  #scale_shape_manual(values = c(16, 17, 21, 24)) + #Measured&Point | Measured&Range | Predicted&Point | Predicted&Range
+  #scale_color_manual(values = c("#165DF995", "#6CBF7095", "#F39C3695", "#C42A2A95"))+
+  #annotate("text", x=28.5, y=-95, label="F", hjust=0, fontface = "bold", size=5) +
+  #scale_y_continuous(breaks=c(-100, -50, -20, 0, 20, 50, 100))+
+  #facet_grid(~Type)+
+  theme_bw()+
+  #coord_flip() +
+  ylab(expression(paste("F"[abs]))) +
+  ggtitle("C. CPDAT (n = 491)")+
+  theme(panel.border = element_rect(colour = "black", size = 1.05),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(size=15,  face = "bold", color = "black"),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_line(color = "black", size = 0.5),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(color = "black", size=14),
+        axis.text.x = element_blank(), #element_text(color = "black", angle = 65, hjust=1, size = 3)
+        axis.text.y = element_text(color = "black", size=12),
+        strip.text = element_text(size=10, face = "bold"))
+
+
+FS4.4 <- 
+  ggplot(Caco2_QR_withEPAlist[which(Caco2_QR_withEPAlist$Envi.Che_REFCHEMDB == "Y"),], aes(x= CASRN, y = abs_med_jeju.R_ivive)) +
+  geom_segment(aes(x=CASRN, xend=CASRN, y=abs_LCL_jeju.R_ivive, yend=abs_UCL_jeju.R_ivive), size = 0.3, color = "#8c8b8b30") +
+  geom_point(size = 0.8, color = "#FF9B54") +
+  #scale_shape_manual(values = c(16, 17, 21, 24)) + #Measured&Point | Measured&Range | Predicted&Point | Predicted&Range
+  #scale_color_manual(values = c("#165DF995", "#6CBF7095", "#F39C3695", "#C42A2A95"))+
+  #annotate("text", x=28.5, y=-95, label="F", hjust=0, fontface = "bold", size=5) +
+  #scale_y_continuous(breaks=c(-100, -50, -20, 0, 20, 50, 100))+
+  #facet_grid(~Type)+
+  theme_bw()+
+  #coord_flip() +
+  ggtitle("D. REFCHEMDB (n = 575)")+
+  theme(panel.border = element_rect(colour = "black", size = 1.05),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(size=15,  face = "bold", color = "black"),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_line(color = "black", size = 0.5),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_blank(), #element_text(color = "black", angle = 65, hjust=1, size = 3)
+        axis.text.y = element_text(size=12, color = "black"),
+        strip.text = element_text(size=10, face = "bold"))
+
+
+FS4.5 <- 
+  ggplot(Caco2_QR_withEPAlist[which(Caco2_QR_withEPAlist$Envi.Che_TSCA_ACTIVE_NCTI == "Y"),], aes(x= CASRN, y = abs_med_jeju.R_ivive)) +
+  geom_segment(aes(x=CASRN, xend=CASRN, y=abs_LCL_jeju.R_ivive, yend=abs_UCL_jeju.R_ivive), size = 0.9, color = "#8c8b8b30") +
+  geom_point(size = 1.5, color = "#DD4055") +
+  #scale_shape_manual(values = c(16, 17, 21, 24)) + #Measured&Point | Measured&Range | Predicted&Point | Predicted&Range
+  #scale_color_manual(values = c("#165DF995", "#6CBF7095", "#F39C3695", "#C42A2A95"))+
+  #annotate("text", x=28.5, y=-95, label="F", hjust=0, fontface = "bold", size=5) +
+  #scale_y_continuous(breaks=c(-100, -50, -20, 0, 20, 50, 100))+
+  #facet_grid(~Type)+
+  theme_bw()+
+  #coord_flip() +
+  xlab("Chemicals")+
+  ggtitle("E. TSCA_ACTIVE_NCTI_0222 (n = 87)")+
+  theme(panel.border = element_rect(colour = "black", size = 1.05),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = element_text(size=15,  face = "bold", color = "black"),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_line(color = "black", size = 0.5),
+        axis.title.x = element_text(color = "black", size = 14),
+        axis.title.y = element_blank(),
+        axis.text.x = element_blank(), #element_text(color = "black", angle = 65, hjust=1, size = 3)
+        axis.text.y = element_text(size=12, color = "black"))
+
+
+
+tiff(width = 13, height = 16, "plots/Figure.S4.tiff", units = "in", res=300)
+FS4.1 + FS4.2 + FS4.3 + FS4.4 + FS4.5 + plot_layout(height = c(1/5, 1/5, 1/5, 1/5, 1/5))
+dev.off()
+
+
+```
+
+
+
+

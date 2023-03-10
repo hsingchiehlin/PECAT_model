@@ -1,0 +1,1046 @@
+---
+title: "Supplementary_code"
+author: "Hsing-Chieh Lin"
+date: "2023.02.06"
+updated date: "2023.02.06"
+output: html_document
+---
+
+# This script is for "Supplementary materials: Development of Physiological-based Gut Absorption Model to Improve Modeling of Bioavailability for Environmental Chemicals"
+
+```{r setup, include=FALSE}
+# basic setting
+knitr::opts_chunk$set(echo = TRUE)
+if(!dir.exists("outputs")) dir.create("outputs")
+if(!dir.exists("plots")) dir.create("plots")
+library(tidyverse)
+library(plyr)
+library(ggplot2)
+library(ggridges)
+library(scales)
+library(ggpubr)
+library(cowplot)
+library(gridExtra)
+library(grid)
+library(Metrics)
+library(EnvStats)
+library(patchwork)
+library(httk)
+# Create mod.exe 
+source("MCSim/function.R")
+set_PATH()
+makemod()
+```
+
+
+```{r PECAT model - senesitivity analysis and Plotting figure}
+#sECTION 2.	Sensitivity analysis: effect of the chemical-related parameters on the prediction of Fabs
+
+# ---------- Model construction ----------
+model <- "enviro_chem_CAT_PBPK_newvol_withratio.model.R"
+makemcsim(model)
+
+# ----------  check the effect of chemical-specific parameter on %abs ----------
+# MC simulation for senesitivity
+Peff_dm_h <- (10^seq(-8, -2, 0.25))*360 # unit: dm/h (used in model)
+Peff_cm_s <- 10^seq(-8, -2, 0.25) # # unit: cm/s (used to plot)
+mc_sim_results_check.para <- matrix(NA, length(Peff_cm_s), 11)
+mc_sim_results_check.para[, 10] <- Peff_dm_h
+mc_sim_results_check.para[, 11] <- Peff_cm_s
+colnames(mc_sim_results_check.para) <- c("C_blood_med", "C_blood_LCL", "C_blood_UCL",
+                                         "Css_med", "Css_LCL", "Css_UCL",
+                                         "abs_med", "abs_LCL", "abs_UCL",
+                                         "Peff_dm_h", "Peff_cm_s")
+mc_sim_results_check.para <- as.data.frame(mc_sim_results_check.para)
+
+for(i in 1:25){
+  
+  file.name <- paste("enviro_chem_mc_", i, ".in", sep="")
+  
+  cat("Integrate (Lsodes, 1e-12, 1e-12, 1);\n\n", file = file.name)
+  sink(file.name, append=TRUE)
+  cat('MonteCarlo ("",10000,11920);
+
+# Absorption on(1)/off(0) switches
+f_Abs_stom  = 0;
+     
+s_jeju_ratio = 1;
+      
+# put peff ratio distributions
+Peff_ratio_duod_jeju = 1;
+Peff_ratio_ileum_jeju = 1;
+Peff_ratio_colon_jeju = 1;
+Peff_ratio_ivive = 1;
+      
+# Switches off intestine epithilia and kidney metabolite
+Vmax_met_vitro_intestine = 0;\n')
+peff <- paste("Peff = ", Peff_dm_h[i], ";\n", sep="")
+cat(peff)
+cat('Distrib(Ratio_BP, Uniform, 0.52, 2.11);
+Distrib(Fu_plasma, Uniform, 0.02, 0.4);
+Distrib(Fu_stom, Uniform, 0.02, 0.4);
+Distrib(Fu_duod, Uniform, 0.02, 0.4);
+Distrib(Fu_jeju, Uniform, 0.02, 0.4);
+Distrib(Fu_ileum, Uniform, 0.02, 0.4);
+Distrib(Fu_cecum, Uniform, 0.02, 0.4);
+Distrib(Fu_colon, Uniform, 0.02, 0.4);
+Distrib(Fu_liver, Uniform, 0.02, 0.4);
+Distrib(Fu_kidney, Uniform, 0.02, 0.4);
+Distrib(Fu_body, Uniform, 0.02, 0.4);
+Distrib(Fu_vitro_stom, Uniform, 0.02, 0.4);
+Distrib(Fu_vitro_duod, Uniform, 0.02, 0.4);
+Distrib(Fu_vitro_jeju, Uniform, 0.02, 0.4);
+Distrib(Fu_vitro_ileum, Uniform, 0.02, 0.4);
+Distrib(Fu_vitro_cecum, Uniform, 0.02, 0.4);
+Distrib(Fu_vitro_colon, Uniform, 0.02, 0.4);
+Distrib(Fu_vitro_liver, Uniform, 0.02, 0.4);
+Distrib(Fu_vitro_kidney, Uniform, 0.02, 0.4);
+Distrib(Kpuu_stom, Uniform, 0.01, 10);
+Distrib(Kpuu_duod, Uniform, 0.01, 10);
+Distrib(Kpuu_jeju, Uniform, 0.01, 10);
+Distrib(Kpuu_ileum, Uniform, 0.01, 10);
+Distrib(Kpuu_cecum, Uniform, 0.01, 10);
+Distrib(Kpuu_colon, Uniform, 0.01, 10);
+Distrib(Kpuu_liver, Uniform, 0.01, 10);
+Distrib(Kpuu_kidney, Uniform, 0.01, 10);
+Distrib(Kpuu_body, Uniform, 0.01, 10);
+Distrib(Vmax_met_vitro_liver, Uniform, 1e-6, 1e-2);
+
+# using mean of post distribution 
+# Weibull delayed release parameters
+Weibull_slope_IR = 1; 
+Weibull_slope_SR = 1; 
+Weibull_slope_ER = 1.7802;
+Weibull_scale_IR = 0.1741;
+Weibull_scale_SR = 1.2392; 
+Weibull_scale_ER = 2.1054;
+
+Simulation{
+  BDM = 73.4; 
+  R_type = 0; 
+  
+  G_immediate_d = 1;
+  Oral_dose_rate = 312.8389; #312.8389
+
+  PrintStep (C_blood, 1,10000, 100);
+  PrintStep (C_ss_equ, 1, 10000, 100);
+  PrintStep (F_bio, 1, 10000, 100);
+};
+
+END.')      
+  
+  sink()
+  
+  out <- mcsim(model, file.name)
+  
+  vars <- names(out)
+  index <- which(vars == "C_blood_1.1" | vars == "F_bio_1.101")
+  mc.sim <- apply(out[index[1]:index[2]], 2, quantile,  c(0.5, 0.025, 0.975)) %>% t()
+  mc.sim <- as.data.frame(mc.sim)
+  
+  mc_sim_results_check.para[i, c(1:3)] <- mc.sim[(101*1), ] # put C_blood into the "mc_sim_results_check.para"
+  mc_sim_results_check.para[i, c(4:6)] <- mc.sim[(101*2), ] # put Css into the "mc_sim_results_check.para"
+  mc_sim_results_check.para[i, c(7:9)] <- mc.sim[(101*3), ] # put %abs into the "mc_sim_results_check.para"
+
+  write.csv(mc_sim_results_check.para, "outputs/mc_sim_results_SI+LI_checking effect of che-specific para_on %abs.csv")
+  file.remove(paste("MCSim/enviro_chem_mc_", i, ".in", sep=""))
+  print(i)
+}
+
+
+
+# Baseline simulation
+# In order to compare the difference of sim results, the following code is used to create the baseline for only switch on the absorption of SL and LI.
+basic_sim_results <- matrix(NA, length(Peff_cm_s), 3)
+basic_sim_results[, 2] <- Peff_dm_h
+basic_sim_results[, 3] <- Peff_cm_s
+colnames(basic_sim_results) <- c("abs", "Peff_dm_h", "Peff_cm_s")
+basic_sim_results <- as.data.frame(basic_sim_results)
+
+for(i in 1:25){
+  
+  file.name <- paste("enviro_chem_abs_", i, ".in", sep="")
+  
+  cat("Integrate (Lsodes, 1e-12, 1e-11, 1);\n\n", file = file.name)
+  sink(file.name, append=TRUE)
+  cat('# Absorption on(1)/off(0) switches
+f_Abs_stom  = 0;
+
+s_jeju_ratio = 1;
+
+# put peff ratio distributions
+Peff_ratio_duod_jeju = 1;
+Peff_ratio_ileum_jeju = 1;
+Peff_ratio_colon_jeju = 1;
+Peff_ratio_ivive = 1;
+
+# Switches off intestine epithilia and kidney metabolite
+Vmax_met_vitro_intestine = 0;
+
+# using mean of post distribution\n')
+  peff <- paste("Peff = ", Peff_dm_h[i], ";\n", sep="")
+  cat(peff)
+  cat('Fu_plasma = 0.2021;      
+Fu_vitro_liver = 0.0711;      
+Kpuu_liver =  4.5388;                        
+Vmax_met_vitro_liver = 0.0009; 
+
+# Weibull delayed release parameters
+Weibull_slope_IR = 1; 
+Weibull_slope_SR = 1; 
+Weibull_slope_ER = 1.7802;
+Weibull_scale_IR = 0.1741;
+Weibull_scale_SR = 1.2392; 
+Weibull_scale_ER = 2.1054;
+
+Simulation{
+  
+  BDM = 73.4; 
+  R_type = 0; 
+  G_immediate_d = 1;
+  Oral_dose_rate = 312.8389; #312.8389
+  PrintStep (F_bio, 1, 10000, 100);
+};
+
+END.')      
+  
+  sink()
+  
+  out <- mcsim(model, file.name)
+  
+  basic_sim_results[i, 1] <- out[101, 2]
+  file.remove(paste("MCSim/enviro_chem_abs_", i, ".in", sep=""))
+  print(i)
+
+}
+
+mc_sim_results_check.para <- read.csv("outputs/mc_sim_results_SI+LI_checking effect of che-specific para_on %abs.csv")
+
+#Plotting
+tiff(width = 6, height = 3.2, "plots/Figure.S_sensitivity analysis_chemical-sepecific para. for Fabs.tiff", units = "in", res=400)
+ggplot() + 
+  # Baseline
+  geom_line(aes(x=basic_sim_results$Peff_cm_s, y=basic_sim_results$abs), linetype = "solid", color="#3d424a", size = 2.5) + 
+  # add dist. of chemical-sepecific para. for sensitivity analysis
+  geom_line(aes(x=mc_sim_results_check.para$Peff_cm_s, y=mc_sim_results_check.para$abs_med), linetype = "dashed", color="#F05454", size = 1) + 
+  geom_ribbon(aes(x=mc_sim_results_check.para$Peff_cm_s, ymin = mc_sim_results_check.para$abs_LCL, ymax = mc_sim_results_check.para$abs_UCL), fill = "#F0545420") +
+  
+  scale_x_log10(lim = c(1E-8,1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x))) +
+  
+  xlab("Permeability (cm/s)") + ylab("% of absorption")+
+  
+  theme_bw()+
+  theme(panel.border = element_rect(colour = "black", size = 1.1),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(color = "black", face = "bold"),
+        axis.text = element_text(color = "black", face = "bold"))
+dev.off()
+```
+
+
+```{r Test Ratio vs. Regression model}
+# ------------------- IVIVE Part -------------------
+Peff_Papp_rawdata <- read.csv("Data/SUPP_Peff_Papp_rawdata.csv")
+
+reg.model_Peff_Papp_1 <- lm(log10(Peff)-1*log10(Papp)~1, data = Peff_Papp_rawdata)
+summary(reg.model_Peff_Papp_1)
+confint(reg.model_Peff_Papp_1, "(Intercept)", level=0.95)
+reg.model_Peff_Papp_2 <- lm(log10(Peff) ~ log10(Papp), data = Peff_Papp_rawdata)
+summary(reg.model_Peff_Papp_2)
+confint(reg.model_Peff_Papp_2, "(Intercept)", level=0.95)
+confint(reg.model_Peff_Papp_2, "log10(Papp)", level=0.95)
+
+cor(log10(Peff_Papp_rawdata$Peff), log10(Peff_Papp_rawdata$Papp)+1.22789)^2
+cor(log10(Peff_Papp_rawdata$Peff), reg.model_Peff_Papp_2[["fitted.values"]])^2
+
+Papp_cm_s <- 10^seq(-8, -2, 0.25)
+model_data <- data.frame(Papp = Papp_cm_s,
+                         Peff_model.1_fit = 10^(log10(Papp_cm_s)+1.22789),
+                         Peff_model.1_lwr = 10^(log10(Papp_cm_s)+1.154992),
+                         Peff_model.1_upr = 10^(log10(Papp_cm_s)+1.30079))
+new.dat <- data.frame(Papp = Papp_cm_s)
+model_data <- cbind(model_data,
+                    10^predict(reg.model_Peff_Papp_2, newdata = new.dat, interval = 'confidence'))
+colnames(model_data)[c(5:7)] <- c("Peff_model.2_fit",  "Peff_model.2_lwr", "Peff_model.2_upr")
+
+tiff(width = 6, height = 4.5, "plots/Figure.S_Scatter plot_ivive.tiff", units = "in", res=400)
+ggplot() +           
+  geom_point(aes(x = Peff_Papp_rawdata$Papp, y = Peff_Papp_rawdata$Peff), alpha = 0.5)+
+  geom_line(aes(x = model_data$Papp, y = model_data$Peff_model.1_fit), color = "blue", size=1.2)+
+  geom_ribbon(aes(x = model_data$Papp, ymin = model_data$Peff_model.1_lwr, ymax = model_data$Peff_model.1_upr), fill = "blue", alpha = 0.3) +
+  geom_line(aes(x = model_data$Papp, y = model_data$Peff_model.2_fit), color = "red", size=1.2)+
+  geom_ribbon(aes(x = model_data$Papp, ymin = model_data$Peff_model.2_lwr, ymax = model_data$Peff_model.2_upr), fill = "red", alpha = 0.3) +
+  
+  scale_x_log10(lim = c(1E-8, 1E-3),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 5),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_y_log10(lim = c(1E-8, 2E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x)))+
+  annotate(geom="text", x=1E-5, y=1E-7, label="Model 1: log10(Peff) = log10(Papp) + 1.228, R2 = 0.56", size=3.5, color = "blue")+
+  annotate(geom="text", x=1E-5, y=5E-8, label="Model 2: log10(Peff) = 0.666 * log10(Papp) - 0.543, R2 = 0.56", size=3.5, color = "red")+
+  theme_bw() + 
+  xlab("Papp") +
+  ylab("Peff")+
+  theme(text=element_text(family="sans", face="plain", color="#000000", size=10, hjust=0.5, vjust=0.5),
+        #panel.grid.major = element_blank(),
+        legend.position = "right",
+        panel.grid.minor = element_blank(),
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(color = "black", face = "bold"),
+        axis.text = element_text(color = "black", face = "bold"),
+        strip.text = element_text(size=10, face = "bold"),
+        legend.text = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"))
+dev.off()
+
+
+hist.residuals <- data.frame(model = rep(c("Model 1", "Model 2"), each = 242),
+                             residuals = c(reg.model_Peff_Papp_1[["residuals"]], reg.model_Peff_Papp_2[["residuals"]]))
+
+tiff(width = 6, height = 4.5, "plots/Figure.S_Histogram_residuals_ivive.tiff", units = "in", res=300)
+ggplot(aes(residuals, color = model, fill = model), data = hist.residuals) + 
+  geom_histogram(position="identity", alpha=0.5) + 
+  scale_color_manual(values=c("blue", "red"))+
+  scale_fill_manual(values=c("blue", "red"))+
+  #xlim(-2, 2)+
+  theme_bw() + 
+  xlab("Residuals") +
+  ylab("Count")+
+  theme(text=element_text(family="sans", face="plain", color="#000000", size=10, hjust=0.5, vjust=0.5),
+        #panel.grid.major = element_blank(),
+        legend.position = "right",
+        panel.grid.minor = element_blank(),
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(color = "black", face = "bold"),
+        axis.text = element_text(color = "black", face = "bold"),
+        strip.text = element_text(size=10, face = "bold"),
+        legend.text = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"))
+dev.off()
+
+
+# ------------------- segment-seocific scaling Part -------------------
+Seg_Papp_rawdata <- read.csv("DATA/SUPP_Site-specific_Papp_rawdata.csv")
+
+# Jej-Duo
+reg.model_Jej_Dou_1 <- lm(I(log10(Duo)-1*log10(Jej))~1, data = Seg_Papp_rawdata)
+summary(reg.model_Jej_Dou_1)
+confint(reg.model_Jej_Dou_1, "(Intercept)", level=0.95)
+reg.model_Jej_Dou_2 <- lm(log10(Duo) ~ log10(Jej), data = Seg_Papp_rawdata)
+summary(reg.model_Jej_Dou_2)
+confint(reg.model_Jej_Dou_2, "log10(Jej)", level=0.95)
+
+Pjej <- 10^seq(-8, -2, 0.25)
+model_data_dou <- data.frame(Pjej = Pjej,
+                             Pdou_model.1_fit = 10^(log10(Pjej)-0.21522),
+                             Pdou_model.1_lwr = 10^(log10(Pjej)-0.3867198),
+                             Pdou_model.1_upr = 10^(log10(Pjej)-0.04372801))
+new.dat <- data.frame(Jej = Pjej)
+model_data_dou <- cbind(model_data_dou,
+                    10^predict(reg.model_Jej_Dou_2, newdata = new.dat, interval = 'confidence'))
+colnames(model_data_dou)[c(5:7)] <- c("Pdou_model.2_fit",  "Pdou_model.2_lwr", "Pdou_model.2_upr")
+
+# Jej-Ile
+reg.model_Jej_Ile_1 <- lm(I(log10(Ile)-1*log10(Jej))~1, data = Seg_Papp_rawdata)
+summary(reg.model_Jej_Ile_1)
+confint(reg.model_Jej_Ile_1, "(Intercept)", level=0.95)
+reg.model_Jej_Ile_2 <- lm(log10(Ile) ~ log10(Jej), data = Seg_Papp_rawdata)
+summary(reg.model_Jej_Ile_2)
+confint(reg.model_Jej_Ile_2, "log10(Jej)", level=0.95)
+
+Pjej <- 10^seq(-8, -2, 0.25)
+model_data_ile <- data.frame(Pile_model.1_fit = 10^(log10(Pjej)+reg.model_Jej_Ile_1$coefficients[1]),
+                             Pile_model.1_lwr = 10^(log10(Pjej)+confint(reg.model_Jej_Ile_1, "(Intercept)", level=0.95)[1]),
+                             Pile_model.1_upr = 10^(log10(Pjej)+confint(reg.model_Jej_Ile_1, "(Intercept)", level=0.95)[2]))
+new.dat <- data.frame(Jej = Pjej)
+model_data_seg_jej <- cbind(model_data_dou, model_data_ile,
+                        10^predict(reg.model_Jej_Ile_2, newdata = new.dat, interval = 'confidence'))
+colnames(model_data_seg_jej)[c(11:13)] <- c("Pile_model.2_fit",  "Pile_model.2_lwr", "Pile_model.2_upr")
+
+# Jej-Col
+reg.model_Jej_Col_1 <- lm(I(log10(Col)-1*log10(Jej))~1, data = Seg_Papp_rawdata)
+summary(reg.model_Jej_Col_1)
+confint(reg.model_Jej_Col_1, "(Intercept)", level=0.95)
+reg.model_Jej_Col_2 <- lm(log10(Col) ~ log10(Jej), data = Seg_Papp_rawdata)
+summary(reg.model_Jej_Col_2)
+confint(reg.model_Jej_Col_2, "log10(Jej)", level=0.95)
+
+Pjej <- 10^seq(-8, -2, 0.25)
+model_data_col <- data.frame(Pcol_model.1_fit = 10^(log10(Pjej)-0.6298),
+                             Pcol_model.1_lwr = 10^(log10(Pjej)-1.008587),
+                             Pcol_model.1_upr = 10^(log10(Pjej)-0.2510247))
+new.dat <- data.frame(Jej = Pjej)
+model_data_seg_jej <- cbind(model_data_seg_jej,model_data_col,
+                        10^predict(reg.model_Jej_Col_2, newdata = new.dat, interval = 'confidence'))
+colnames(model_data_seg_jej)[c(17:19)] <- c("Pcol_model.2_fit",  "Pcol_model.2_lwr", "Pcol_model.2_upr")
+
+
+
+# Col-Duo
+reg.model_Col_Dou_1 <- lm(I(log10(Duo)-1*log10(Col))~1, data = Seg_Papp_rawdata)
+summary(reg.model_Col_Dou_1)
+confint(reg.model_Col_Dou_1, "(Intercept)", level=0.95)
+reg.model_Col_Dou_2 <- lm(log10(Duo) ~ log10(Col), data = Seg_Papp_rawdata)
+summary(reg.model_Col_Dou_2)
+confint(reg.model_Col_Dou_2, "log10(Col)", level=0.95)
+
+Pcol <- 10^seq(-8, -2, 0.25)
+model_data_dou <- data.frame(Pcol = Pcol,
+                             Pdou_model.1_fit = 10^(log10(Pcol)+0.5835),
+                             Pdou_model.1_lwr = 10^(log10(Pcol)-0.5432372),
+                             Pdou_model.1_upr = 10^(log10(Pcol)+1.710307))
+new.dat <- data.frame(Col = Pcol)
+model_data_dou <- cbind(model_data_dou,
+                        10^predict(reg.model_Col_Dou_2, newdata = new.dat, interval = 'confidence'))
+colnames(model_data_dou)[c(5:7)] <- c("Pdou_model.2_fit",  "Pdou_model.2_lwr", "Pdou_model.2_upr")
+
+
+# Col-Jej
+reg.model_Col_Jej_1 <- lm(I(log10(Jej)-1*log10(Col))~1, data = Seg_Papp_rawdata)
+summary(reg.model_Col_Jej_1)
+confint(reg.model_Col_Jej_1, "(Intercept)", level=0.95)
+reg.model_Col_Jej_2 <- lm(log10(Jej) ~ log10(Col), data = Seg_Papp_rawdata)
+summary(reg.model_Col_Jej_2)
+confint(reg.model_Col_Jej_2, "log10(Col)", level=0.95)
+
+Pcol <- 10^seq(-8, -2, 0.25)
+model_data_jej <- data.frame(Pjej_model.1_fit = 10^(log10(Pcol)+0.6298),
+                             Pjej_model.1_lwr = 10^(log10(Pcol)+0.2510247),
+                             Pjej_model.1_upr = 10^(log10(Pcol)+1.008587))
+new.dat <- data.frame(Col = Pcol)
+model_data_seg_col <- cbind(model_data_dou, model_data_jej,
+                            10^predict(reg.model_Col_Jej_2, newdata = new.dat, interval = 'confidence'))
+colnames(model_data_seg_col)[c(11:13)] <- c("Pjej_model.2_fit",  "Pjej_model.2_lwr", "Pjej_model.2_upr")
+
+
+# Col-Ile
+reg.model_Col_Ile_1 <- lm(I(log10(Ile)-1*log10(Col))~1, data = Seg_Papp_rawdata)
+summary(reg.model_Col_Ile_1)
+confint(reg.model_Col_Ile_1, "(Intercept)", level=0.95)
+reg.model_Col_Ile_2 <- lm(log10(Ile) ~ log10(Col), data = Seg_Papp_rawdata)
+summary(reg.model_Col_Ile_2)
+confint(reg.model_Col_Ile_2, "log10(Col)", level=0.95)
+
+Pcol <- 10^seq(-8, -2, 0.25)
+model_data_ile <- data.frame(Pile_model.1_fit = 10^(log10(Pcol)+0.6350),
+                             Pile_model.1_lwr = 10^(log10(Pcol)+0.01258703),
+                             Pile_model.1_upr = 10^(log10(Pcol)+1.257391))
+new.dat <- data.frame(Col = Pcol)
+model_data_seg_col <- cbind(model_data_seg_col, model_data_ile,
+                            10^predict(reg.model_Col_Ile_2, newdata = new.dat, interval = 'confidence'))
+colnames(model_data_seg_col)[c(17:19)] <- c("Pile_model.2_fit",  "Pile_model.2_lwr", "Pile_model.2_upr")
+
+
+
+figure.setting <-   theme(text=element_text(family="sans", face="plain", color="#000000", size=10, hjust=0.5, vjust=0.5),
+                          #panel.grid.major = element_blank(),
+                          legend.position = "none",
+                          plot.title = element_text(face="bold"),
+                          panel.grid.minor = element_blank(),
+                          axis.ticks = element_line(color = "black"),
+                          axis.title = element_text(color = "black", face = "bold"),
+                          axis.text = element_text(color = "black", face = "bold"),
+                          strip.text = element_text(size=10, face = "bold"),
+                          legend.text = element_text(face = "bold"),
+                          legend.title = element_text(face = "bold"))
+
+
+Fig.1.1 <-
+ggplot() +           
+  geom_point(aes(x = Seg_Papp_rawdata$Jej, y = Seg_Papp_rawdata$Duo), alpha = 0.5)+
+  geom_line(aes(x = model_data_seg_jej$Pjej, y = model_data_seg_jej$Pdou_model.1_fit), color = "blue", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_jej$Pjej, ymin = model_data_seg_jej$Pdou_model.1_lwr, ymax = model_data_seg_jej$Pdou_model.1_upr), fill = "blue", alpha = 0.3) +
+  geom_line(aes(x = model_data_seg_jej$Pjej, y = model_data_seg_jej$Pdou_model.2_fit), color = "red", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_jej$Pjej, ymin = model_data_seg_jej$Pdou_model.2_lwr, ymax = model_data_seg_jej$Pdou_model.2_upr), fill = "red", alpha = 0.3) +
+  
+  scale_x_log10(lim = c(1E-6, 1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 4),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_y_log10(lim = c(1E-7, 1E-1),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x)))+
+  annotate(geom="text", x=5E-5, y=1E-2, label="Model 1: log10(P_duo) = log10(P_jej) - 0.215", size=3, color = "blue")+
+  annotate(geom="text", x=5E-5, y=5E-3, label="Model 2: log10(P_duo) = 0.977 * log10(P_jej) - 0.322, R2 = 0.85", size=3, color = "red")+
+  theme_bw() + 
+  xlab("P_Jejunum") +
+  ylab("P_Duodenum")+
+  labs(title="Compare with jejunum Permeability") + 
+  figure.setting
+
+Fig.1.2 <-
+ggplot() +           
+  geom_point(aes(x = Seg_Papp_rawdata$Jej, y = Seg_Papp_rawdata$Ile), alpha = 0.5)+
+  geom_line(aes(x = model_data_seg_jej$Pjej, y = model_data_seg_jej$Pile_model.1_fit), color = "blue", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_jej$Pjej, ymin = model_data_seg_jej$Pile_model.1_lwr, ymax = model_data_seg_jej$Pile_model.1_upr), fill = "blue", alpha = 0.3) +
+  geom_line(aes(x = model_data_seg_jej$Pjej, y = model_data_seg_jej$Pile_model.2_fit), color = "red", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_jej$Pjej, ymin = model_data_seg_jej$Pile_model.2_lwr, ymax = model_data_seg_jej$Pile_model.2_upr), fill = "red", alpha = 0.3) +
+  
+  scale_x_log10(lim = c(1E-6, 1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 4),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_y_log10(lim = c(1E-7, 1E-1),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x)))+
+  annotate(geom="text", x=5E-5, y=1E-2, label="Model 1: log10(P_ile) = log10(P_jej) - 0.169", size=3, color = "blue")+
+  annotate(geom="text", x=5E-5, y=5E-3, label="Model 2: log10(P_ile) = 1.046 * log10(P_jej) + 0.021, R2 = 0.88", size=3, color = "red")+
+  theme_bw() + 
+  xlab("P_Jejunum") +
+  ylab("P_Ileum")+
+  figure.setting
+
+Fig.1.3 <-
+ggplot() +           
+  geom_point(aes(x = Seg_Papp_rawdata$Jej, y = Seg_Papp_rawdata$Col), alpha = 0.5)+
+  geom_line(aes(x = model_data_seg_jej$Pjej, y = model_data_seg_jej$Pcol_model.1_fit), color = "blue", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_jej$Pjej, ymin = model_data_seg_jej$Pcol_model.1_lwr, ymax = model_data_seg_jej$Pcol_model.1_upr), fill = "blue", alpha = 0.3) +
+  geom_line(aes(x = model_data_seg_jej$Pjej, y = model_data_seg_jej$Pcol_model.2_fit), color = "red", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_jej$Pjej, ymin = model_data_seg_jej$Pcol_model.2_lwr, ymax = model_data_seg_jej$Pcol_model.2_upr), fill = "red", alpha = 0.3) +
+  
+  scale_x_log10(lim = c(1E-6, 1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 4),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_y_log10(lim = c(1E-8, 1E-1),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x)))+
+  annotate(geom="text", x=5E-5, y=1E-2, label="Model 1: log10(P_col) = log10(P_jej) - 0.630", size=3, color = "blue")+
+  annotate(geom="text", x=5E-5, y=5E-3, label="Model 2: log10(P_col) = 0.519 * log10(P_jej) - 2.745, R2 = 0.18", size=3, color = "red")+
+  theme_bw() + 
+  xlab("P_Jejunum") +
+  ylab("P_Colon")+
+  figure.setting
+
+# colon base
+Fig.1.4 <-
+ggplot() +           
+  geom_point(aes(x = Seg_Papp_rawdata$Col, y = Seg_Papp_rawdata$Duo), alpha = 0.5)+
+  geom_line(aes(x = model_data_seg_col$Pcol, y = model_data_seg_col$Pdou_model.1_fit), color = "blue", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_col$Pcol, ymin = model_data_seg_col$Pdou_model.1_lwr, ymax = model_data_seg_col$Pdou_model.1_upr), fill = "blue", alpha = 0.3) +
+  geom_line(aes(x = model_data_seg_col$Pcol, y = model_data_seg_col$Pdou_model.2_fit), color = "red", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_col$Pcol, ymin = model_data_seg_col$Pdou_model.2_lwr, ymax = model_data_seg_col$Pdou_model.2_upr), fill = "red", alpha = 0.3) +
+  
+  scale_x_log10(lim = c(1E-8, 1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 4),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_y_log10(lim = c(1E-7, 1E-1),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x)))+
+  annotate(geom="text", x=1E-6, y=1E-2, label="Model 1: log10(P_duo) = log10(P_col) + 0.584", size=3, color = "blue")+
+  annotate(geom="text", x=1E-6, y=5E-3, label="Model 2: log10(P_duo) = -0.197 * log10(P_col) - 6.002, R2 = 0.0009", size=3, color = "red")+
+  theme_bw() + 
+  xlab("P_Colon") +
+  ylab("P_Duodenum")+
+  labs(title="Compare with colon Permeability") + 
+  figure.setting
+
+Fig.1.5 <-
+ggplot() +           
+  geom_point(aes(x = Seg_Papp_rawdata$Col, y = Seg_Papp_rawdata$Jej), alpha = 0.5)+
+  geom_line(aes(x = model_data_seg_col$Pcol, y = model_data_seg_col$Pjej_model.1_fit), color = "blue", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_col$Pcol, ymin = model_data_seg_col$Pjej_model.1_lwr, ymax = model_data_seg_col$Pjej_model.1_upr), fill = "blue", alpha = 0.3) +
+  geom_line(aes(x = model_data_seg_col$Pcol, y = model_data_seg_col$Pjej_model.2_fit), color = "red", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_col$Pcol, ymin = model_data_seg_col$Pjej_model.2_lwr, ymax = model_data_seg_col$Pjej_model.2_upr), fill = "red", alpha = 0.3) +
+  
+  scale_x_log10(lim = c(1E-8, 1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 4),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_y_log10(lim = c(1E-7, 1E-1),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x)))+
+  annotate(geom="text", x=1E-6, y=1E-2, label="Model 1: log10(P_jej) = log10(P_col) - 0.630", size=3, color = "blue")+
+  annotate(geom="text", x=1E-6, y=5E-3, label="Model 2: log10(P_jej) = 0.397 * log10(P_col) - 2.402, R2 = 0.18", size=3, color = "red")+
+  theme_bw() + 
+  xlab("P_Colon") +
+  ylab("P_Jejunum")+
+  figure.setting
+
+Fig.1.6 <-
+ggplot() +           
+  geom_point(aes(x = Seg_Papp_rawdata$Col, y = Seg_Papp_rawdata$Ile), alpha = 0.5)+
+  geom_line(aes(x = model_data_seg_col$Pcol, y = model_data_seg_col$Pile_model.1_fit), color = "blue", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_col$Pcol, ymin = model_data_seg_col$Pile_model.1_lwr, ymax = model_data_seg_col$Pile_model.1_upr), fill = "blue", alpha = 0.3) +
+  geom_line(aes(x = model_data_seg_col$Pcol, y = model_data_seg_col$Pile_model.2_fit), color = "red", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_col$Pcol, ymin = model_data_seg_col$Pile_model.2_lwr, ymax = model_data_seg_col$Pile_model.2_upr), fill = "red", alpha = 0.3) +
+  
+  scale_x_log10(lim = c(1E-8, 1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 4),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_y_log10(lim = c(1E-8, 1E-1),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x)))+
+  annotate(geom="text", x=1E-6, y=1E-2, label="Model 1: log10(P_ile) = log10(P_col) + 0.635", size=3, color = "blue")+
+  annotate(geom="text", x=1E-6, y=5E-3, label="Model 2: log10(P_ile) = 0.463 * log10(P_col) - 1.200, R2 = 0.23", size=3, color = "red")+
+  theme_bw() + 
+  xlab("P_Colon") +
+  ylab("P_Ileum")+
+  figure.setting
+
+tiff(width = 18, height = 9, "plots/Figure_Scatter plot_seg_ratio_all.tiff", units = "in", res=400)
+Fig.1.1 + Fig.1.2 + Fig.1.3 + Fig.1.4 + Fig.1.5 + Fig.1.6 + plot_layout(widths = c(1/3, 1/3, 1/3), height = c(1/2, 1/2))
+dev.off()
+
+
+
+# rediduals histogram
+hist.residuals.jej <- data.frame(Model = rep(c("Model 1", "Model 2"), each = 51),
+                                 Segment = rep(c(rep("Duodenum", 9), rep("Ileum", 14), rep("Colon", 28)), 2),
+                                 Residuals = c(reg.model_Jej_Dou_1[["residuals"]], reg.model_Jej_Ile_1[["residuals"]], reg.model_Jej_Col_1[["residuals"]],
+                                               reg.model_Jej_Dou_2[["residuals"]], reg.model_Jej_Ile_2[["residuals"]], reg.model_Jej_Col_2[["residuals"]]))
+hist.residuals.col <- data.frame(Model = rep(c("Model 1", "Model 2"), each = 51),
+                                 Segment = rep(c(rep("Jejunum", 28), rep("Duodenum", 9), rep("Ileum", 14)), 2),
+                                 Residuals = c(reg.model_Col_Jej_1[["residuals"]], reg.model_Col_Dou_1[["residuals"]], reg.model_Col_Ile_1[["residuals"]],
+                                               reg.model_Col_Jej_2[["residuals"]], reg.model_Col_Dou_2[["residuals"]], reg.model_Col_Ile_2[["residuals"]]))
+
+hist.residuals <- data.frame(Comp.seg = rep(c("Jejunum", "Colon"), each = 102))
+hist.residuals <- cbind(hist.residuals, rbind(hist.residuals.jej, hist.residuals.col))
+hist.residuals$Comp.seg <- factor(hist.residuals$Comp.seg, levels = c("Jejunum", "Colon"))
+hist.residuals$Segment <- factor(hist.residuals$Segment, levels = c("Duodenum", "Jejunum", "Ileum", "Colon"))
+
+tiff(width = 11, height = 5, "plots/Figure_Histogram_residuals_seg_ratio_all.tiff", units = "in", res=300)
+ggplot(aes(Residuals, color = Model, fill = Model), data = hist.residuals) + 
+  geom_histogram(position="identity", alpha=0.5) + 
+  scale_color_manual(values=c("blue", "red"))+
+  scale_fill_manual(values=c("blue", "red"))+
+  facet_grid(Comp.seg~Segment) + 
+  theme_bw() + 
+  xlab("Residuals") +
+  ylab("Count")+
+  theme(text=element_text(family="sans", face="plain", color="#000000", size=10, hjust=0.5, vjust=0.5),
+        #panel.grid.major = element_blank(),
+        legend.position = c(0.92, 0.15),
+        panel.grid.minor = element_blank(),
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(color = "black", face = "bold"),
+        axis.text = element_text(color = "black", face = "bold"),
+        strip.text = element_text(size=10, face = "bold"),
+        legend.text = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"))
+dev.off()
+
+
+# ------------------- segment-seocific scaling Part (rm outlier) -------------------
+Seg_Papp_rawdata <- read.csv("DATA/SUPP_Site-specific_Papp_rawdata.csv")
+Seg_Papp_rawdata_rm <- Seg_Papp_rawdata[-3, ]
+
+# Jej-Duo
+reg.model_Jej_Dou_1 <- lm(I(log10(Duo)-1*log10(Jej))~1, data = Seg_Papp_rawdata_rm)
+summary(reg.model_Jej_Dou_1)
+confint(reg.model_Jej_Dou_1, "(Intercept)", level=0.95)
+reg.model_Jej_Dou_2 <- lm(log10(Duo) ~ log10(Jej), data = Seg_Papp_rawdata_rm)
+summary(reg.model_Jej_Dou_2)
+confint(reg.model_Jej_Dou_2, "(Intercept)", level=0.95)
+confint(reg.model_Jej_Dou_2, "log10(Jej)", level=0.95)
+
+Pjej <- 10^seq(-8, -2, 0.25)
+model_data_dou <- data.frame(Pjej = Pjej,
+                             Pdou_model.1_fit = 10^(log10(Pjej)-0.21522),
+                             Pdou_model.1_lwr = 10^(log10(Pjej)-0.3867198),
+                             Pdou_model.1_upr = 10^(log10(Pjej)-0.04372801))
+new.dat <- data.frame(Jej = Pjej)
+model_data_dou <- cbind(model_data_dou,
+                        10^predict(reg.model_Jej_Dou_2, newdata = new.dat, interval = 'confidence'))
+colnames(model_data_dou)[c(5:7)] <- c("Pdou_model.2_fit",  "Pdou_model.2_lwr", "Pdou_model.2_upr")
+
+# Jej-Ile
+reg.model_Jej_Ile_1 <- lm(I(log10(Ile)-1*log10(Jej))~1, data = Seg_Papp_rawdata_rm)
+summary(reg.model_Jej_Ile_1)
+confint(reg.model_Jej_Ile_1, "(Intercept)", level=0.95)
+reg.model_Jej_Ile_2 <- lm(log10(Ile) ~ log10(Jej), data = Seg_Papp_rawdata_rm)
+summary(reg.model_Jej_Ile_2)
+confint(reg.model_Jej_Ile_2, "(Intercept)", level=0.95)
+confint(reg.model_Jej_Ile_2, "log10(Jej)", level=0.95)
+
+Pjej <- 10^seq(-8, -2, 0.25)
+model_data_ile <- data.frame(Pile_model.1_fit = 10^(log10(Pjej)+reg.model_Jej_Ile_1$coefficients[1]),
+                             Pile_model.1_lwr = 10^(log10(Pjej)+confint(reg.model_Jej_Ile_1, "(Intercept)", level=0.95)[1]),
+                             Pile_model.1_upr = 10^(log10(Pjej)+confint(reg.model_Jej_Ile_1, "(Intercept)", level=0.95)[2]))
+new.dat <- data.frame(Jej = Pjej)
+model_data_seg_jej <- cbind(model_data_dou, model_data_ile,
+                            10^predict(reg.model_Jej_Ile_2, newdata = new.dat, interval = 'confidence'))
+colnames(model_data_seg_jej)[c(11:13)] <- c("Pile_model.2_fit",  "Pile_model.2_lwr", "Pile_model.2_upr")
+
+# Jej-Col
+reg.model_Jej_Col_1 <- lm(I(log10(Col)-1*log10(Jej))~1, data = Seg_Papp_rawdata_rm)
+summary(reg.model_Jej_Col_1)
+confint(reg.model_Jej_Col_1, "(Intercept)", level=0.95)
+reg.model_Jej_Col_2 <- lm(log10(Col) ~ log10(Jej), data = Seg_Papp_rawdata_rm)
+summary(reg.model_Jej_Col_2)
+confint(reg.model_Jej_Col_2, "(Intercept)", level=0.95)
+confint(reg.model_Jej_Col_2, "log10(Jej)", level=0.95)
+
+Pjej <- 10^seq(-8, -2, 0.25)
+model_data_col <- data.frame(Pcol_model.1_fit = 10^(log10(Pjej)-0.6298),
+                             Pcol_model.1_lwr = 10^(log10(Pjej)-1.008587),
+                             Pcol_model.1_upr = 10^(log10(Pjej)-0.2510247))
+new.dat <- data.frame(Jej = Pjej)
+model_data_seg_jej <- cbind(model_data_seg_jej,model_data_col,
+                            10^predict(reg.model_Jej_Col_2, newdata = new.dat, interval = 'confidence'))
+colnames(model_data_seg_jej)[c(17:19)] <- c("Pcol_model.2_fit",  "Pcol_model.2_lwr", "Pcol_model.2_upr")
+
+
+
+# Col-Duo
+reg.model_Col_Dou_1 <- lm(I(log10(Duo)-1*log10(Col))~1, data = Seg_Papp_rawdata_rm)
+summary(reg.model_Col_Dou_1)
+confint(reg.model_Col_Dou_1, "(Intercept)", level=0.95)
+reg.model_Col_Dou_2 <- lm(log10(Duo) ~ log10(Col), data = Seg_Papp_rawdata_rm)
+summary(reg.model_Col_Dou_2)
+confint(reg.model_Col_Dou_2, "(Intercept)", level=0.95)
+confint(reg.model_Col_Dou_2, "log10(Col)", level=0.95)
+
+Pcol <- 10^seq(-8, -2, 0.25)
+model_data_dou <- data.frame(Pcol = Pcol,
+                             Pdou_model.1_fit = 10^(log10(Pcol)+0.1046),
+                             Pdou_model.1_lwr = 10^(log10(Pcol)-0.1550882),
+                             Pdou_model.1_upr = 10^(log10(Pcol)+0.3642988))
+new.dat <- data.frame(Col = Pcol)
+model_data_dou <- cbind(model_data_dou,
+                        10^predict(reg.model_Col_Dou_2, newdata = new.dat, interval = 'confidence'))
+colnames(model_data_dou)[c(5:7)] <- c("Pdou_model.2_fit",  "Pdou_model.2_lwr", "Pdou_model.2_upr")
+
+
+# Col-Jej
+reg.model_Col_Jej_1 <- lm(I(log10(Jej)-1*log10(Col))~1, data = Seg_Papp_rawdata_rm)
+summary(reg.model_Col_Jej_1)
+confint(reg.model_Col_Jej_1, "(Intercept)", level=0.95)
+reg.model_Col_Jej_2 <- lm(log10(Jej) ~ log10(Col), data = Seg_Papp_rawdata_rm)
+summary(reg.model_Col_Jej_2)
+confint(reg.model_Col_Jej_2, "(Intercept)", level=0.95)
+confint(reg.model_Col_Jej_2, "log10(Col)", level=0.95)
+
+
+Pcol <- 10^seq(-8, -2, 0.25)
+model_data_jej <- data.frame(Pjej_model.1_fit = 10^(log10(Pcol)+0.6298),
+                             Pjej_model.1_lwr = 10^(log10(Pcol)+0.2510247),
+                             Pjej_model.1_upr = 10^(log10(Pcol)+1.008587))
+new.dat <- data.frame(Col = Pcol)
+model_data_seg_col <- cbind(model_data_dou, model_data_jej,
+                            10^predict(reg.model_Col_Jej_2, newdata = new.dat, interval = 'confidence'))
+colnames(model_data_seg_col)[c(11:13)] <- c("Pjej_model.2_fit",  "Pjej_model.2_lwr", "Pjej_model.2_upr")
+
+
+# Col-Ile
+reg.model_Col_Ile_1 <- lm(I(log10(Ile)-1*log10(Col))~1, data = Seg_Papp_rawdata_rm)
+summary(reg.model_Col_Ile_1)
+confint(reg.model_Col_Ile_1, "(Intercept)", level=0.95)
+reg.model_Col_Ile_2 <- lm(log10(Ile) ~ log10(Col), data = Seg_Papp_rawdata_rm)
+summary(reg.model_Col_Ile_2)
+confint(reg.model_Col_Ile_2, "(Intercept)", level=0.95)
+confint(reg.model_Col_Ile_2, "log10(Col)", level=0.95)
+
+Pcol <- 10^seq(-8, -2, 0.25)
+model_data_ile <- data.frame(Pile_model.1_fit = 10^(log10(Pcol)+0.6350),
+                             Pile_model.1_lwr = 10^(log10(Pcol)+0.01258703),
+                             Pile_model.1_upr = 10^(log10(Pcol)+1.257391))
+new.dat <- data.frame(Col = Pcol)
+model_data_seg_col <- cbind(model_data_seg_col, model_data_ile,
+                            10^predict(reg.model_Col_Ile_2, newdata = new.dat, interval = 'confidence'))
+colnames(model_data_seg_col)[c(17:19)] <- c("Pile_model.2_fit",  "Pile_model.2_lwr", "Pile_model.2_upr")
+
+
+
+figure.setting <-   theme(text=element_text(family="sans", face="plain", color="#000000", size=10, hjust=0.5, vjust=0.5),
+                          #panel.grid.major = element_blank(),
+                          legend.position = "none",
+                          plot.title = element_text(face="bold"),
+                          panel.grid.minor = element_blank(),
+                          axis.ticks = element_line(color = "black"),
+                          axis.title = element_text(color = "black", face = "bold"),
+                          axis.text = element_text(color = "black", face = "bold"),
+                          strip.text = element_text(size=10, face = "bold"),
+                          legend.text = element_text(face = "bold"),
+                          legend.title = element_text(face = "bold"))
+
+
+Fig.1.1 <-
+  ggplot() +           
+  geom_point(aes(x = Seg_Papp_rawdata_rm$Jej, y = Seg_Papp_rawdata_rm$Duo), alpha = 0.5)+
+  geom_line(aes(x = model_data_seg_jej$Pjej, y = model_data_seg_jej$Pdou_model.1_fit), color = "blue", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_jej$Pjej, ymin = model_data_seg_jej$Pdou_model.1_lwr, ymax = model_data_seg_jej$Pdou_model.1_upr), fill = "blue", alpha = 0.3) +
+  geom_line(aes(x = model_data_seg_jej$Pjej, y = model_data_seg_jej$Pdou_model.2_fit), color = "red", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_jej$Pjej, ymin = model_data_seg_jej$Pdou_model.2_lwr, ymax = model_data_seg_jej$Pdou_model.2_upr), fill = "red", alpha = 0.3) +
+  
+  scale_x_log10(lim = c(1E-6, 1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 4),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_y_log10(lim = c(1E-7, 1E-1),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x)))+
+  annotate(geom="text", x=5E-5, y=1E-2, label="Model 1: log10(P_duo) = log10(P_jej) - 0.251, R2 = 0.81", size=3, color = "blue")+
+  annotate(geom="text", x=5E-5, y=5E-3, label="Model 2: log10(P_duo) = 0.748 * log10(P_jej) - 1.472, R2 = 0.81", size=3, color = "red")+
+  theme_bw() + 
+  xlab("P_Jejunum") +
+  ylab("P_Duodenum")+
+  labs(title="Compare with jejunum permeability") + 
+  figure.setting
+
+Fig.1.2 <-
+  ggplot() +           
+  geom_point(aes(x = Seg_Papp_rawdata_rm$Jej, y = Seg_Papp_rawdata_rm$Ile), alpha = 0.5)+
+  geom_line(aes(x = model_data_seg_jej$Pjej, y = model_data_seg_jej$Pile_model.1_fit), color = "blue", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_jej$Pjej, ymin = model_data_seg_jej$Pile_model.1_lwr, ymax = model_data_seg_jej$Pile_model.1_upr), fill = "blue", alpha = 0.3) +
+  geom_line(aes(x = model_data_seg_jej$Pjej, y = model_data_seg_jej$Pile_model.2_fit), color = "red", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_jej$Pjej, ymin = model_data_seg_jej$Pile_model.2_lwr, ymax = model_data_seg_jej$Pile_model.2_upr), fill = "red", alpha = 0.3) +
+  
+  scale_x_log10(lim = c(1E-6, 1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 4),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_y_log10(lim = c(1E-7, 1E-1),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x)))+
+  annotate(geom="text", x=5E-5, y=1E-2, label="Model 1: log10(P_ile) = log10(P_jej) - 0.133, R2 = 0.90", size=3, color = "blue")+
+  annotate(geom="text", x=5E-5, y=5E-3, label="Model 2: log10(P_ile) = 1.10 * log10(P_jej) + 0.269, R2 = 0.90", size=3, color = "red")+
+  theme_bw() + 
+  xlab("P_Jejunum") +
+  ylab("P_Ileum")+
+  figure.setting
+
+Fig.1.3 <-
+  ggplot() +           
+  geom_point(aes(x = Seg_Papp_rawdata_rm$Jej, y = Seg_Papp_rawdata_rm$Col), alpha = 0.5)+
+  geom_line(aes(x = model_data_seg_jej$Pjej, y = model_data_seg_jej$Pcol_model.1_fit), color = "blue", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_jej$Pjej, ymin = model_data_seg_jej$Pcol_model.1_lwr, ymax = model_data_seg_jej$Pcol_model.1_upr), fill = "blue", alpha = 0.3) +
+  geom_line(aes(x = model_data_seg_jej$Pjej, y = model_data_seg_jej$Pcol_model.2_fit), color = "red", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_jej$Pjej, ymin = model_data_seg_jej$Pcol_model.2_lwr, ymax = model_data_seg_jej$Pcol_model.2_upr), fill = "red", alpha = 0.3) +
+  
+  scale_x_log10(lim = c(1E-6, 1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 4),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_y_log10(lim = c(1E-8, 1E-1),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x)))+
+  annotate(geom="text", x=5E-5, y=1E-2, label="Model 1: log10(P_col) = log10(P_jej) - 0.492, R2 = 0.48", size=3, color = "blue")+
+  annotate(geom="text", x=5E-5, y=5E-3, label="Model 2: log10(P_col) = 0.649 * log10(P_jej) - 2.044, R2 = 0.48", size=3, color = "red")+
+  theme_bw() + 
+  xlab("P_Jejunum") +
+  ylab("P_Colon")+
+  figure.setting
+
+# colon base
+Fig.1.4 <-
+  ggplot() +           
+  geom_point(aes(x = Seg_Papp_rawdata_rm$Col, y = Seg_Papp_rawdata_rm$Duo), alpha = 0.5)+
+  geom_line(aes(x = model_data_seg_col$Pcol, y = model_data_seg_col$Pdou_model.1_fit), color = "blue", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_col$Pcol, ymin = model_data_seg_col$Pdou_model.1_lwr, ymax = model_data_seg_col$Pdou_model.1_upr), fill = "blue", alpha = 0.3) +
+  geom_line(aes(x = model_data_seg_col$Pcol, y = model_data_seg_col$Pdou_model.2_fit), color = "red", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_col$Pcol, ymin = model_data_seg_col$Pdou_model.2_lwr, ymax = model_data_seg_col$Pdou_model.2_upr), fill = "red", alpha = 0.3) +
+  
+  scale_x_log10(lim = c(1E-8, 1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 4),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_y_log10(lim = c(1E-8, 1E-1),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x)))+
+  annotate(geom="text", x=1E-6, y=1E-2, label="Model 1: log10(P_duo) = log10(P_col) + 0.105, R2 = 0.91", size=3, color = "blue")+
+  annotate(geom="text", x=1E-6, y=5E-3, label="Model 2: log10(P_duo) = 0.568 * log10(P_col) - 2.139, R2 = 0.91", size=3, color = "red")+
+  theme_bw() + 
+  xlab("P_Colon") +
+  ylab("P_Duodenum")+
+  labs(title="Compare with colon permeability") + 
+  figure.setting
+
+Fig.1.5 <-
+  ggplot() +           
+  geom_point(aes(x = Seg_Papp_rawdata_rm$Col, y = Seg_Papp_rawdata_rm$Jej), alpha = 0.5)+
+  geom_line(aes(x = model_data_seg_col$Pcol, y = model_data_seg_col$Pjej_model.1_fit), color = "blue", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_col$Pcol, ymin = model_data_seg_col$Pjej_model.1_lwr, ymax = model_data_seg_col$Pjej_model.1_upr), fill = "blue", alpha = 0.3) +
+  geom_line(aes(x = model_data_seg_col$Pcol, y = model_data_seg_col$Pjej_model.2_fit), color = "red", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_col$Pcol, ymin = model_data_seg_col$Pjej_model.2_lwr, ymax = model_data_seg_col$Pjej_model.2_upr), fill = "red", alpha = 0.3) +
+  
+  scale_x_log10(lim = c(1E-8, 1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 4),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_y_log10(lim = c(1E-8, 1E-1),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x)))+
+  annotate(geom="text", x=1E-6, y=1E-2, label="Model 1: log10(P_jej) = log10(P_col) + 0.492, R2 = 0.48", size=3, color = "blue")+
+  annotate(geom="text", x=1E-6, y=5E-3, label="Model 2: log10(P_jej) = 0.734 * log10(P_col) - 0.797, R2 = 0.48", size=3, color = "red")+
+  theme_bw() + 
+  xlab("P_Colon") +
+  ylab("P_Jejunum")+
+  figure.setting
+
+Fig.1.6 <-
+  ggplot() +           
+  geom_point(aes(x = Seg_Papp_rawdata_rm$Col, y = Seg_Papp_rawdata_rm$Ile), alpha = 0.5)+
+  geom_line(aes(x = model_data_seg_col$Pcol, y = model_data_seg_col$Pile_model.1_fit), color = "blue", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_col$Pcol, ymin = model_data_seg_col$Pile_model.1_lwr, ymax = model_data_seg_col$Pile_model.1_upr), fill = "blue", alpha = 0.3) +
+  geom_line(aes(x = model_data_seg_col$Pcol, y = model_data_seg_col$Pile_model.2_fit), color = "red", size=1.2)+
+  geom_ribbon(aes(x = model_data_seg_col$Pcol, ymin = model_data_seg_col$Pile_model.2_lwr, ymax = model_data_seg_col$Pile_model.2_upr), fill = "red", alpha = 0.3) +
+  
+  scale_x_log10(lim = c(1E-8, 1E-2),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 4),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_y_log10(lim = c(1E-8, 1E-1),
+                breaks = trans_breaks("log10", function(x) 10^x, n = 6),
+                labels = trans_format("log10", math_format(10^.x)))+
+  annotate(geom="text", x=1E-6, y=1E-2, label="Model 1: log10(P_ile) = log10(P_col) + 0.382, R2 = 0.75", size=3, color = "blue")+
+  annotate(geom="text", x=1E-6, y=5E-3, label="Model 2: log10(P_ile) = 1.054 * log10(P_col) + 0.636, R2 = 0.75", size=3, color = "red")+
+  theme_bw() + 
+  xlab("P_Colon") +
+  ylab("P_Ileum")+
+  figure.setting
+
+tiff(width = 18, height = 9, "plots/Figure_Scatter plot_seg_ratio_rm.tiff", units = "in", res=400)
+Fig.1.1 + Fig.1.2 + Fig.1.3 + Fig.1.4 + Fig.1.5 + Fig.1.6 + plot_layout(widths = c(1/3, 1/3, 1/3), height = c(1/2, 1/2))
+dev.off()
+
+
+
+# rediduals histogram
+hist.residuals.jej <- data.frame(Model = rep(c("Model 1", "Model 2"), each = 48),
+                                 Segment = rep(c(rep("Duodenum", 8), rep("Ileum", 13), rep("Colon", 27)), 2),
+                                 Residuals = c(reg.model_Jej_Dou_1[["residuals"]], reg.model_Jej_Ile_1[["residuals"]], reg.model_Jej_Col_1[["residuals"]],
+                                               reg.model_Jej_Dou_2[["residuals"]], reg.model_Jej_Ile_2[["residuals"]], reg.model_Jej_Col_2[["residuals"]]))
+hist.residuals.col <- data.frame(Model = rep(c("Model 1", "Model 2"), each = 48),
+                                 Segment = rep(c(rep("Jejunum", 27), rep("Duodenum", 8), rep("Ileum", 13)), 2),
+                                 Residuals = c(reg.model_Col_Jej_1[["residuals"]], reg.model_Col_Dou_1[["residuals"]], reg.model_Col_Ile_1[["residuals"]],
+                                               reg.model_Col_Jej_2[["residuals"]], reg.model_Col_Dou_2[["residuals"]], reg.model_Col_Ile_2[["residuals"]]))
+
+hist.residuals <- data.frame(Comp.seg = c(rep(c("Jejunum"), 96), rep(c("Colon"), 96)))
+hist.residuals <- cbind(hist.residuals, rbind(hist.residuals.jej, hist.residuals.col))
+hist.residuals$Comp.seg <- factor(hist.residuals$Comp.seg, levels = c("Jejunum", "Colon"))
+hist.residuals$Segment <- factor(hist.residuals$Segment, levels = c("Duodenum", "Jejunum", "Ileum", "Colon"))
+
+tiff(width = 11, height = 5, "plots/Figure_Histogram_residuals_seg_ratio_rm_add.tiff", units = "in", res=300)
+ggplot(aes(Residuals, color = Model, fill = Model), data = hist.residuals) + 
+  geom_histogram(position="identity", alpha=0.5) + 
+  scale_color_manual(values=c("blue", "red"))+
+  scale_fill_manual(values=c("blue", "red"))+
+  facet_grid(Comp.seg~Segment) + 
+  theme_bw() + 
+  xlab("Residuals") +
+  ylab("Count")+
+  theme(text=element_text(family="sans", face="plain", color="#000000", size=10, hjust=0.5, vjust=0.5),
+        #panel.grid.major = element_blank(),
+        legend.position = c(0.92, 0.15),
+        panel.grid.minor = element_blank(),
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(color = "black", face = "bold"),
+        axis.text = element_text(color = "black", face = "bold"),
+        strip.text = element_text(size=10, face = "bold"),
+        legend.text = element_text(face = "bold"),
+        legend.title = element_text(face = "bold"))
+dev.off()
+
+
+```
+
+
+```{r Examine the effect of pH and inhibitor on distribution of IVIVC}
+# sECTION 3.2.	Effects of adding transporter inhibitors and different pH value in the in vitro testing environment on IVIVC factors
+
+IVIVE_ratio <- read.csv("DATA/ivive_ratio_new.csv")
+# -------------------- Inhibitor comparison --------------------
+Inhibitor_data <- IVIVE_ratio
+Inhibitor_data$Inhibitor <- "All"
+Inhibitor_data <- rbind(Inhibitor_data, IVIVE_ratio[which(IVIVE_ratio$Inhibitor == "w/o"), ])
+
+Inhibitor_data$Inhibitor[which(Inhibitor_data$Inhibitor == "w/o")] <- "Without inhibitor"
+
+Summary.IVIVE.ratio <- as.data.frame(matrix(NA, 2, 8))
+colnames(Summary.IVIVE.ratio) <- c("Mean", "SD", "log.mean","log.SD", "Geo.mean", "Geo.SD", "p_value.normal", "p_value.lognormal")
+
+Summary.IVIVE.ratio$Mean <- c(mean(IVIVE_ratio$ivive_ratio, na.rm = T),
+                              mean(IVIVE_ratio[which(IVIVE_ratio$Inhibitor == "w/o"), ]$ivive_ratio, na.rm = T))
+Summary.IVIVE.ratio$SD <- c(sd(IVIVE_ratio$ivive_ratio, na.rm = T),
+                            sd(IVIVE_ratio[which(IVIVE_ratio$Inhibitor == "w/o"), ]$ivive_ratio, na.rm = T))
+Summary.IVIVE.ratio$log.mean <- c(mean(log(IVIVE_ratio$ivive_ratio), na.rm = T),
+                                  mean(log(IVIVE_ratio[which(IVIVE_ratio$Inhibitor == "w/o"), ]$ivive_ratio), na.rm = T))
+Summary.IVIVE.ratio$log.SD <- c(sd(log(IVIVE_ratio$ivive_ratio), na.rm = T),
+                                sd(log(IVIVE_ratio[which(IVIVE_ratio$Inhibitor == "w/o"), ]$ivive_ratio), na.rm = T))
+Summary.IVIVE.ratio$Geo.mean <- c(exp(mean(log(IVIVE_ratio$ivive_ratio), na.rm = T)),
+                                  exp(mean(log(IVIVE_ratio[which(IVIVE_ratio$Inhibitor == "w/o"), ]$ivive_ratio), na.rm = T)))
+Summary.IVIVE.ratio$Geo.SD <- c(geoSD(IVIVE_ratio$ivive_ratio, na.rm = T),
+                                geoSD(IVIVE_ratio[which(IVIVE_ratio$Inhibitor == "w/o"), ]$ivive_ratio, na.rm = T))
+Summary.IVIVE.ratio$p_value.normal <- c(shapiro.test(IVIVE_ratio$ivive_ratio)$p.value,
+                                        shapiro.test(IVIVE_ratio[which(IVIVE_ratio$Inhibitor == "w/o"), ]$ivive_ratio)$p.value)
+Summary.IVIVE.ratio$p_value.lognormal <- c(shapiro.test(log(IVIVE_ratio$ivive_ratio))$p.value,
+                                           shapiro.test(log(IVIVE_ratio[which(IVIVE_ratio$Inhibitor == "w/o"), ]$ivive_ratio))$p.value)
+
+Inhibitor_data$log.ratio <- log(Inhibitor_data$ivive_ratio)
+
+mu_Inhibitor <- ddply(Inhibitor_data, "Inhibitor", summarise, grp.mean=mean(log.ratio), grp.SD=sd(log.ratio))
+
+Inhibitor_names <- c(
+  'All'="All (n = 242)",
+  'Without inhibitor'="Without inhibitor (n = 232)"
+)
+
+tiff(width = 10, height = 4, "plots/Figure.S_IVIVE ratio.inhibitor.tiff", units = "in", res=400)
+ggplot(Inhibitor_data, aes(x=log.ratio, fill=Inhibitor, color=Inhibitor)) + 
+  geom_histogram(aes(y=..density..), fill="white")+
+  geom_density(alpha=.2, size = 0.6)+
+  scale_fill_manual(values=c("#2772D3", "#3ba99c"))+
+  scale_color_manual(values=c("#2772D3", "#3ba99c"))+
+  facet_grid(~Inhibitor, labeller = as_labeller(Inhibitor_names)) + 
+  geom_vline(data=mu_Inhibitor, aes(xintercept=grp.mean, color=pH.group),
+             color="#EA5038", linetype="dashed", size=0.7) +
+  labs(x=expression(paste("log (P"[app], "/P"[eff], ")")), y = "Density")+
+  ylim(0, 0.4)+
+  theme_bw()+
+  theme(panel.border = element_rect(colour = "black", size = 1.05),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        strip.text = element_text(size=12, face = "bold"),
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(color = "black"),
+        axis.text = element_text(color = "black"))
+dev.off()
+
+ks.test(Inhibitor_data$log.ratio, Inhibitor_data$log.ratio[which(Inhibitor_data$Inhibitor == "Without inhibitor")]) #p-value = 1
+
+# -------------------- pH comparison --------------------
+pH_data <- IVIVE_ratio
+pH_data$pH.group <- "All"
+pH_data <- rbind(pH_data, 
+                 IVIVE_ratio[which(IVIVE_ratio$pH.group == "Group I"), ],
+                 IVIVE_ratio[which(IVIVE_ratio$pH.group == "Group II"), ],
+                 IVIVE_ratio[which(IVIVE_ratio$pH.group == "Group III"), ])
+pH_data$log.ratio <- log(pH_data$ivive_ratio)
+
+mu_pH <- ddply(pH_data, "pH.group", summarise, grp.mean=mean(log.ratio), grp.SD=sd(log.ratio))
+
+pH_names <- c(
+  'All'="All (n = 242)",
+  'Group I'="Group I (n = 61)",
+  'Group II'="Group II (n = 112)",
+  'Group III'="Group III (n = 47)"
+)
+
+tiff(width = 12, height = 4, "plots/Figure.S_IVIVE ratio.pH group.tiff", units = "in", res=400)
+ggplot(pH_data, aes(x=log.ratio, fill=pH.group, color=pH.group)) + 
+  geom_histogram(aes(y=..density..), fill="white")+
+  geom_density(alpha=.2, size = 0.6)+
+  scale_fill_manual(values=c("#2772D3", "#3ba99c", "#fea120", "#ff595e"))+
+  scale_color_manual(values=c("#2772D3", "#3ba99c", "#fea120", "#ff595e"))+
+  facet_grid(~pH.group, labeller = as_labeller(pH_names)) + 
+  geom_vline(data=mu_pH, aes(xintercept=grp.mean, color=pH.group),
+             color="black", linetype="dashed", size=0.7) +
+  labs(x=expression(paste("log (P"[app], "/P"[eff], ")")), y = "Density")+
+  theme_bw()+
+  theme(panel.border = element_rect(colour = "black", size = 1.05),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        strip.text = element_text(size=12, face = "bold"),
+        axis.ticks = element_line(color = "black"),
+        axis.title = element_text(color = "black"),
+        axis.text = element_text(color = "black"))
+dev.off()
+
+ks.test(pH_data$log.ratio[which(pH_data$pH.group == "All")], 
+        pH_data$log.ratio[which(pH_data$pH.group == "Group I")]) #p-value = 0.6067
+
+ks.test(pH_data$log.ratio[which(pH_data$pH.group == "All")], 
+        pH_data$log.ratio[which(pH_data$pH.group == "Group II")]) #p-value = 0.3759
+
+ks.test(pH_data$log.ratio[which(pH_data$pH.group == "All")], 
+        pH_data$log.ratio[which(pH_data$pH.group == "Group III")]) #p-value = 0.09495
+
+```
