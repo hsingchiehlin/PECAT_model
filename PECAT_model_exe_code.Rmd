@@ -477,7 +477,7 @@ END.')
 
 # simulation using colon ratio
 # create setpoint file
-X <- read.csv("multi.nor.colpara.exp.csv")
+X <- read.csv("DATA/multi.nor.colpara.exp.csv")
 write.table(X, file = "setpts.out", row.names = F, sep = "\t")
 
 for(i in 1:25){
