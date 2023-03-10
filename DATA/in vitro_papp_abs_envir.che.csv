@@ -1,0 +1,10 @@
+chemical,Papp,Fa,unit,drug.class,Drug Class
+"2,4-D",4.20E-06,85,cm/s,4,IV
+Imazalil,3.06E-05,80,cm/s,2,II
+Bisphenol A,1.59E-05,95,cm/s,2,II
+Coumarin,7.70E-05,100,cm/s,2,II
+Ochratoxin A,9.92E-07,85.5,cm/s,2,II
+Malathion,1.18E-05,74,cm/s,2,II
+Parathion,2.59E-05,86,cm/s,2,II
+Pentachlorophenol,6.01E-05,86,cm/s,2,II
+Warfarine,3.55E-05,93,cm/s,2,II

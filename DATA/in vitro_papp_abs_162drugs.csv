@@ -1,0 +1,163 @@
+,Chemical,Papp.cm.s,Fabs,ref.,drug.class,Drug.Class
+1,Acebutalol,4.80E-06,40,"Marino et al., 2005",0,Not Classified
+2,Acebutalol,7.94E-07,46,"Paix?o et al., 2010, Paix?o et al., 2012",0,Not Classified
+3,Acetaminophen,1.99E-05,95,"Marino et al., 2005",1,I
+4,Acetaminophen,3.63E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+5,Acetaminophen,9.22E-06,80,"Turco et al., 2011",1,I
+6,Acetylsalicilic acid,3.38E-06,84,"Turco et al., 2011",1,I
+7,Acyclovir,3.80E-07,19,"Matsson et al., 2005",4,IV
+8,Acyclovir,8.51E-07,32,"Paix?o et al., 2010, Paix?o et al., 2012",4,IV
+9,Alfentanil,0.00027,100,"Matsson et al., 2005",1,I
+10,Alprenolol,0.00024,96,"Matsson et al., 2005",1,I
+11,Amoxicillin,4.90E-07,51,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+12,Antipyrine,2.88E-05,100,"Marino et al., 2005",1,I
+13,Antipyrine,0.000215,97,"Matsson et al., 2005",1,I
+14,Antipyrine,3.39E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+15,Atenolol,2.50E-06,50,"Marino et al., 2005",3,III
+16,Atenolol,1.00E-06,54,"Matsson et al., 2005",3,III
+17,Atenolol,4.57E-07,58,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+18,Atenolol,2.10E-07,50,"Turco et al., 2011",3,III
+19,Atropine sulphate,8.27E-06,98,"Turco et al., 2011",3,III
+20,Betaxolol,1.23E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+21,BMS-180291,1.95E-05,100,"Marino et al., 2005",0,Not Classified
+22,BMS-189664,2.00E-06,10,"Marino et al., 2005",0,Not Classified
+23,Bosentan,6.46E-07,56,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+24,Bromocriptine,1.23E-06,7,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+25,BvAraU,4.10E-06,82,"Marino et al., 2005",0,Not Classified
+26,Caffeine,3.31E-05,100,"Marino et al., 2005",1,I
+27,Caffeine,3.31E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+28,Caffeine,2.11E-05,100,"Turco et al., 2011",1,I
+29,Carbamazepine,4.27E-05,73,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+30,Carbamazepine,1.70E-05,84,"Turco et al., 2011",2,II
+31,Cephalexin,4.71E-05,98,"Miret et al., 2004",3,III
+32,Cephalexin,3.80E-07,92,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+33,Chloramphenicol,4.74E-05,90,"Miret et al., 2004",1,I
+34,Chlorothiazide,4.95E-06,13,"Miret et al., 2004",4,IV
+35,Chlorpromazine,2.00E-05,88,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+36,Cimetidine,4.90E-06,95,"Marino et al., 2005",3,III
+37,Cimetidine,6.70E-07,80,"Matsson et al., 2005",3,III
+38,Cimetidine,1.26E-06,72,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+39,Cimetidine,5.20E-07,64,"Turco et al., 2011",3,III
+40,Ciprofloxacin,1.26E-06,73,"Paix?o et al., 2010, Paix?o et al., 2012",4,IV
+41,Clodronic acid,5.90E-08,3,"Matsson et al., 2005",3,III
+42,Clonidine,2.63E-05,79,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+43,Clozapine,3.09E-05,75,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+44,Colchicine,2.08E-06,44,"Turco et al., 2011",3,III
+45,Creatinine,1.20E-06,70,"Matsson et al., 2005",0,Not Classified
+46,Desipramine,2.15E-05,95,"Marino et al., 2005",1,I
+47,Desipramine,1.07E-05,78,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+48,Dexamethasone,1.20E-05,100,"Marino et al., 2005",1,I
+49,Diazepam,3.55E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+50,Diazepam,1.70E-05,100,"Turco et al., 2011",1,I
+51,Diclofenac,1.78E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+52,Didanosine,2.50E-07,42,"Matsson et al., 2005",3,III
+53,Digoxin,1.30E-06,81,"Matsson et al., 2005",3,III
+54,Digoxin,1.28E-06,81,"Turco et al., 2011",3,III
+55,Diltiazem,2.95E-05,88,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+56,Doxycycline,1.12E-05,94,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+57,Etoposide,1.55E-06,54,"Paix?o et al., 2010, Paix?o et al., 2012",4,IV
+58,Famotidine,6.92E-07,51,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+59,Fluconazole,1.51E-05,90,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+60,Foscarnet,4.30E-08,17,"Matsson et al., 2005",3,III
+61,Foscarnet,3.39E-08,9,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+62,Furosemide,1.36E-05,61,"Miret et al., 2004",4,IV
+63,Furosemide,2.40E-07,46,"Paix?o et al., 2010, Paix?o et al., 2012",4,IV
+64,Gabapentin,6.92E-09,62,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+65,Ganciclovir,2.30E-07,5,"Matsson et al., 2005",3,III
+66,Ganciclovir,4.27E-07,9,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+67,Glycylsarcosine,5.00E-07,100,"Matsson et al., 2005",0,Not Classified
+68,Guanabenz,1.11E-05,79,"Marino et al., 2005",1,I
+69,Hydralazine,1.41E-05,90,"Marino et al., 2005",1,I
+70,Hydrochlorothiazide,8.71E-07,72,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+71,Hydrocortisone,1.51E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+72,Ibuprofen,3.95E-05,100,"Marino et al., 2005",2,II
+73,Ibuprofen,2.63E-05,85,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+74,Imipramine,6.76E-06,100,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+75,Imipramine,3.18E-06,100,"Turco et al., 2011",1,I
+76,Inulin,1.00E-06,5,"Marino et al., 2005",0,Not Classified
+77,Ketoconazole,9.50E-06,76,"Marino et al., 2005",2,II
+78,Ketoprofen,3.31E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+79,lactulose,2.70E-07,1,"Matsson et al., 2005",1,I
+80,l-DOPA,8.91E-07,100,"Paix?o et al., 2010, Varma et al., 2012",1,I
+81,lobucavir,8.80E-07,50,"Matsson et al., 2005",0,Not Classified
+82,Losartan,8.91E-07,100,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+83,Lucifer yellow,1.00E-07,0,"Miret et al., 2004",0,Not Classified
+84,Mannitol,3.20E-06,15,"Marino et al., 2005",3,III
+85,Mannitol,1.90E-07,26,"Matsson et al., 2005",3,III
+86,Mannitol,2.80E-07,16,"Turco et al., 2011",3,III
+87,Meloxicam,1.95E-05,98,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+88,Metformin,6.60E-07,55,"Matsson et al., 2005",3,III
+89,Metformin,6.31E-07,52,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+90,Methotrexate,3.00E-08,59,"Matsson et al., 2005",3,III
+91,Methotrexate,7.94E-07,72,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+92,Methylprednisolone,1.17E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+93,Metolazone,4.30E-06,64,"Matsson et al., 2005",4,IV
+94,Metoprolol,1.37E-05,95,"Marino et al., 2005",1,I
+95,Metoprolol,9.10E-05,100,"Matsson et al., 2005",1,I
+96,Metoprolol,2.51E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+97,Morphine,3.55E-06,100,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+98,Nadolol,1.70E-06,35,"Marino et al., 2005",3,III
+99,Nadolol,2.80E-07,30,"Matsson et al., 2005",3,III
+100,Nadolol,7.24E-07,35,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+101,Naloxone,2.14E-05,20,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+102,Naproxen,7.82E-05,99,"Miret et al., 2004",2,II
+103,Naproxen,2.19E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+104,Naproxen,4.24E-05,100,"Marino et al., 2005",2,II
+105,Naproxen sodium,4.01E-05,100,"Marino et al., 2005",2,II
+106,Nicotine,6.55E-06,100,"Turco et al., 2011",1,I
+107,Nitrendipine,1.17E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+108,Norfloxacin,1.44E-06,71,"Miret et al., 2004",4,IV
+109,Olsalazine,5.00E-08,3,"Matsson et al., 2005",1,I
+110,Ondansetron,4.57E-05,94,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+111,Orphenadrine,5.80E-06,95,"Turco et al., 2011",1,I
+112,Oxacillin,1.37E-05,33,"Miret et al., 2004",3,III
+113,Oxazepam,6.03E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+114,Phenobarbital,2.36E-05,90,"Turco et al., 2011",1,I
+115,Phenytoin,3.24E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+116,Pindolol,5.50E-05,92,"Matsson et al., 2005",1,I
+117,Pindolol,1.95E-05,93,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+118,Pirenzepine,4.37E-07,34,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+119,Pravastatin,3.30E-06,34,"Marino et al., 2005",3,III
+120,Pravastatin,1.45E-06,51,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+121,Prazosin,5.50E-06,86,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+122,Propofol,1.70E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+123,Propranolol,1.11E-05,90,"Marino et al., 2005",1,I
+124,Propranolol,0.000204,100,"Matsson et al., 2005",1,I
+125,Propranolol,7.12E-05,92,"Miret et al., 2004",1,I
+126,Propranolol,2.34E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+127,Propranolol,1.70E-05,99,"Turco et al., 2011",1,I
+128,Quinidine,1.15E-05,96,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+129,Raffinose,4.70E-08,0,"Matsson et al., 2005",0,Not Classified
+130,Ranitidine,2.40E-06,50,"Marino et al., 2005",3,III
+131,Ranitidine,4.90E-07,62,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+132,Salicylic acid,4.40E-05,100,"Marino et al., 2005",1,I
+133,Scopolamine,1.17E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+134,Sildenafil,3.09E-05,57,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+135,Sodium valproate,3.14E-05,100,"Turco et al., 2011",0,Not Classified
+136,Sulfamethoxazole,2.63E-05,100,"Marino et al., 2005",2,II
+137,Sulfamethoxazole,1.32E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+138,Sulfasalazine,2.20E-06,13,"Marino et al., 2005",2,II
+139,Sulfasalazine,1.60E-07,12,"Matsson et al., 2005",2,II
+140,Sulfisoxazole,2.45E-05,100,"Marino et al., 2005",4,IV
+141,Sulpiride,2.10E-07,30,"Matsson et al., 2005",3,III
+142,Sulpiride,2.24E-07,29,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+143,Sumatriptan,1.58E-06,84,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+144,Terbutaline,2.90E-06,73,"Marino et al., 2005",3,III
+145,Terbutaline,2.30E-07,73,"Matsson et al., 2005",3,III
+146,Terbutaline,6.92E-07,28,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+147,Tetracycline,2.08E-05,78,"Miret et al., 2004",3,III
+148,Tetracycline,2.00E-06,79,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+149,Theophylline,6.59E-05,99,"Miret et al., 2004",1,I
+150,Theophylline,2.45E-05,98,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+151,Timolol,4.70E-06,72,"Marino et al., 2005",1,I
+152,Timolol,1.20E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+153,Tolbutamide,5.25E-05,87,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+154,Trimethoprim,3.16E-05,65,"Paix?o et al., 2010, Paix?o et al., 2012",3,III
+155,Valaciclovir,2.30E-06,36,"Matsson et al., 2005",0,Not Classified
+156,Verapamil,1.55E-05,100,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+157,Verapamil,2.98E-06,100,"Turco et al., 2011",2,II
+158,Warfarin,3.47E-05,99,"Miret et al., 2004",2,II
+159,Warfarin,2.34E-05,93,"Paix?o et al., 2010, Paix?o et al., 2012",2,II
+160,Warfarin,2.38E-05,98,"Turco et al., 2011",2,II
+161,Zidovudine,8.71E-06,100,"Paix?o et al., 2010, Paix?o et al., 2012",1,I
+162,Ziprasidone,5.89E-06,100,"Paix?o et al., 2010, Paix?o et al., 2012",2,II

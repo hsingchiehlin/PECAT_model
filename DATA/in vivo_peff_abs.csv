@@ -1,0 +1,34 @@
+,Chemical,human_Peff..cm.s.,Fa,ref.,drug.class,Drug Class
+1,Amiloride,0.00016,90,"Varma et al., 2012",3,III
+2,Amoxicillin,3.00E-05,60,"Lennern?s, 2007",3,III
+3,Antipyrine,0.00056,97,"Lennern?s, 2007",1,I
+4,Atenolol,1.50E-05,50,"Varma et al., 2012",3,III
+5,Carbamazepine,0.00043,100,"Varma et al., 2012",2,II
+6,Cephalexin,0.000156,95,"Lennern?s, 2007",3,III
+7,Cimetidine,2.60E-05,68,"Varma et al., 2012",3,III
+8,Cyclosporine,0.000161,95,"Lennern?s, 2007",2,II
+9,Desipramine,0.00045,100,"Varma et al., 2012",1,I
+10,Enalapril maleate,0.000157,65,"Lennern?s, 2007",1,I
+11,Enalaprilat,2.00E-05,8,"Lennern?s, 2007",3,III
+12,Fexofenadine,7.00E-06,30,"Varma et al., 2012",3,III
+13,Fluvastatin,0.00024,100,"Varma et al., 2012",1,I
+14,Fluvastatin sodium,0.00024,95,"Lennern?s, 2007",1,I
+15,Furosemide,5.00E-06,50,"Lennern?s, 2007",4,IV
+16,Hydrochlorothiazide,4.00E-06,55,"Varma et al., 2012",3,III
+17,Inogatran,3.00E-06,7,"Lennern?s, 2007",0,Not Classified
+18,Isotretinoin,9.90E-05,90,"Lennern?s, 2007",2,II
+19,Ketoprofen,0.00085,92,"Varma et al., 2012",2,II
+20,Levodopa,0.00034,100,"Varma et al., 2012",1,I
+21,Lisinopril,3.30E-05,35,"Varma et al., 2012",3,III
+22,Losartan,0.000115,90,"Varma et al., 2012",2,II
+23,Methyldopa,1.00E-05,43,"Varma et al., 2012",3,III
+24,Metoprolol,0.00015,98,"Varma et al., 2012",1,I
+25,Naproxen,0.00085,100,"Varma et al., 2012",2,II
+26,Piroxicam,0.000665,100,"peff refer to Lennern?s, 2007; abs refer to Varma et al., 2012",2,II
+27,Propranolol,0.000291,99,"Varma et al., 2012",1,I
+28,Ranitidine,2.70E-05,55,"Varma et al., 2012",3,III
+29,Terbutaline,3.00E-05,65,"Lennern?s, 1998",3,III
+30,Valacyclovir,0.000166,90,"Lennern?s, 2007",1,I
+31,Verapamil,0.00068,100,"Varma et al., 2012",2,II
+32,Antipyrine,5.00E-04,100,"Varma et al., 2012",1,I
+33,Methyldopa,1.00E-05,43,"Varma et al., 2012",3,III

@@ -1,0 +1,71 @@
+,Chemical,Papp..cm.s.,Fa,ref.,drug.class,Drug Class
+1,Acetaminophen,3.11E-05,100,"Volpe et al., 2007",1,I
+2,Acetylsalicylic ,3.79E-05,100,"Volpe et al., 2007",1,I
+3,Acetylsalicylic acid,2.40E-06,100,"Artursson and Karlsson, 1991",1,I
+4,Alprenonol,4.05E-05,93,"Artursson and Karlsson, 1991",0,Not Classified
+5,Amiloride,3.05E-06,58,"Volpe et al., 2007",3,III
+6,Antipyrine,2.91E-05,97,"Bock et al., 2004",1,I
+7,Antipyrine,7.67E-05,100,"Volpe et al., 2007",1,I
+8,Atenolol,2.00E-07,50,"Artursson and Karlsson, 1991",3,III
+9,Atenolol,2.57E-07,55,"Bock et al., 2004",3,III
+10,Atenolol,9.20E-07,50,"Volpe et al., 2007",3,III
+11,AVP,1.40E-07,0,"Artursson and Karlsson, 1991",0,Not Classified
+12,Caffeine,1.35E-05,100,"Bock et al., 2004",1,I
+13,Caffeine,4.43E-05,100,"Volpe et al., 2007",1,I
+14,Carbamazepin,3.18E-05,70,"Bock et al., 2004",2,II
+15,Chlorothiazide,1.69E-06,13,"Volpe et al., 2007",4,IV
+16,Chlorpheniramine,6.00E-06,80,"Lentz et al., 2000",1,I
+17,Citalopram,1.40E-05,90,"Bock et al., 2004",2,II
+18,Clonidine,9.75E-06,75,"Bock et al., 2004",1,I
+19,Corticosterone,5.45E-05,100,"Artursson and Karlsson, 1991",0,Not Classified
+20,Coumarin,0.000141,100," Lentz et al., 2000",0,Not Classified
+21,Ddavp,1.30E-07,1,"Artursson and Karlsson, 1991",0,Not Classified
+22,Dexamethasone,1.25E-05,100,"Artursson and Karlsson, 1991",1,I
+23,Digoxin,3.78E-07,81,"Bock et al., 2004",3,III
+24,Diltiazem HCl,4.24E-05,99," Lentz et al., 2000",1,I
+25,Disopyramide,4.24E-06,85.3," Lentz et al., 2000",3,III
+26,Famotidine,2.98E-06,45,"Volpe et al., 2007",3,III
+27,Felodipine,2.27E-05,100,"Artursson and Karlsson, 1991",2,II
+28,FITC-Dextran,2.10E-07,0,"Volpe et al., 2007",0,Not Classified
+29,Furosemide,3.33E-06,61," Lentz et al., 2000",4,IV
+30,Furosemide,1.98E-07,61,"Bock et al., 2004",4,IV
+31,Furosemide,5.40E-07,60,"Volpe et al., 2007",4,IV
+32,Hydrochlorothiazide,2.24E-06,70,"Volpe et al., 2007",3,III
+33,Hydrocortisone,2.15E-05,89,"Artursson and Karlsson, 1991",1,I
+34,Ibuprofen,6.01E-05,100,"Volpe et al., 2007",2,II
+35,Indomethacin,3.84E-05,100," Lentz et al., 2000",2,II
+36,Ketoprofen,1.86E-05,92,"Bock et al., 2004",2,II
+37,Ketoprofen,2.65E-05,100,"Volpe et al., 2007",2,II
+38,Labetalol,1.50E-05,90,"Volpe et al., 2007",1,I
+39,Lisuride,6.11E-05,100," Lentz et al., 2000",0,Not Classified
+40,Mannitol,1.80E-07,16,"Artursson and Karlsson, 1991",3,III
+41,Mannitol,1.77E-07,16,"Bock et al., 2004",3,III
+42,Metoprolol,4.00E-05,94.5," Lentz et al., 2000",1,I
+43,Metoprolol,2.70E-05,95,"Artursson and Karlsson, 1991",1,I
+44,Metoprolol,2.29E-05,95,"Bock et al., 2004",1,I
+45,Metoprolol,3.73E-05,95,"Volpe et al., 2007",1,I
+46,Nadolol,6.20E-07,35,"Volpe et al., 2007",3,III
+47,Naproxen,2.58E-05,99,"Bock et al., 2004",2,II
+48,Naproxen,6.01E-05,100,"Volpe et al., 2007",2,II
+49,Nicardipine,1.98E-05,100," Lentz et al., 2000",1,I
+50,Olsalazine,1.10E-07,2,"Artursson and Karlsson, 1991",1,I
+51,PEG,5.20E-08,0,"Artursson and Karlsson, 1991",0,Not Classified
+52,PEG400,4.50E-07,10,"Bock et al., 2004",0,Not Classified
+53,PEG4000,5.00E-06,0,"Bock et al., 2004",0,Not Classified
+54,PEG900,2.41E-07,10,"Bock et al., 2004",0,Not Classified
+55,Phenytoin,1.51E-05,90,"Volpe et al., 2007",2,II
+56,Pindolol,2.16E-05,95,"Volpe et al., 2007",1,I
+57,Practolol,9.00E-07,100,"Artursson and Karlsson, 1991",3,III
+58,Propranolol,4.19E-05,90,"Artursson and Karlsson, 1991",1,I
+59,Propranolol,3.42E-05,99,"Bock et al., 2004",1,I
+60,Propranolol,3.08E-05,100,"Volpe et al., 2007",1,I
+61,Ranitidine,6.70E-07,50,"Volpe et al., 2007",3,III
+62,Salicylicylic acid,1.19E-05,100,"Artursson and Karlsson, 1991",1,I
+63,Sulfasalazine,2.93E-06,13,"Volpe et al., 2007",2,II
+64,Sulphasalazine,1.30E-07,13,"Artursson and Karlsson, 1991",2,II
+65,Terbutaline,3.80E-07,73,"Artursson and Karlsson, 1991",3,III
+66,Testosterone,5.18E-05,100,"Artursson and Karlsson, 1991",2,II
+67,Theophylline,6.10E-05,96," Lentz et al., 2000",1,I
+68,Theophylline,5.09E-05,100,"Volpe et al., 2007",1,I
+69,Verapamil,2.42E-05,100,"Bock et al., 2004",2,II
+70,Warfarin,3.83E-05,98,"Artursson and Karlsson, 1991",2,II
