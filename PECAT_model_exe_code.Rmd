@@ -1279,6 +1279,7 @@ abs.diff_env.che_in_vitro.1$drug.class <- factor(abs.diff_env.che_in_vitro.1$dru
 abs.diff_env.che_in_vitro.1$Type <- "Env.che_in_vitro"
 abs.diff_jeju <- rbind(abs.diff_drug_in_vivo.1, abs.diff_drug_in_vitro.1, abs.diff_env.che_in_vitro.1)
 abs.diff_jeju$Type <- factor(abs.diff_jeju$Type)
+abs.diff_jeju$drug.class[which(abs.diff_jeju$drug.class == 0)] <- 5
 abs.diff_jeju$drug.class <- factor(abs.diff_jeju$drug.class)
 abs.diff_jeju$Diff_med <- abs.diff_jeju$abs_med_jeju.R - abs.diff_jeju$Fa
 abs.diff_jeju$Diff_LCL <- abs.diff_jeju$abs_LCL_jeju.R - abs.diff_jeju$Fa
@@ -1291,6 +1292,7 @@ abs.diff_env.che_in_vitro.2$drug.class <- factor(abs.diff_env.che_in_vitro.2$dru
 abs.diff_env.che_in_vitro.2$Type <- "Env.che_in_vitro"
 abs.diff_colon <- rbind(abs.diff_drug_in_vitro.2, abs.diff_env.che_in_vitro.2)
 abs.diff_colon$Type <- factor(abs.diff_colon$Type)
+abs.diff_colon$drug.class[which(abs.diff_colon$drug.class == 0)] <- 5
 abs.diff_colon$drug.class <- factor(abs.diff_colon$drug.class)
 abs.diff_colon$Diff_med <- abs.diff_colon$abs_med_colon.R - abs.diff_colon$Fa
 abs.diff_colon$Diff_LCL <- abs.diff_colon$abs_LCL_colon.R - abs.diff_colon$Fa
@@ -1303,6 +1305,7 @@ abs.diff_env.che_in_vitro.3$drug.class <- factor(abs.diff_env.che_in_vitro.3$dru
 abs.diff_env.che_in_vitro.3$Type <- "Env.che_in_vitro"
 abs.diff_jeju_ivive <- rbind(abs.diff_drug_in_vitro.3, abs.diff_env.che_in_vitro.3)
 abs.diff_jeju_ivive$Type <- factor(abs.diff_jeju_ivive$Type)
+abs.diff_jeju_ivive$drug.class[which(abs.diff_jeju_ivive$drug.class == 0)] <- 5
 abs.diff_jeju_ivive$drug.class <- factor(abs.diff_jeju_ivive$drug.class)
 abs.diff_jeju_ivive$Diff_med <- abs.diff_jeju_ivive$abs_med_jeju.R_ivive - abs.diff_jeju_ivive$Fa
 abs.diff_jeju_ivive$Diff_LCL <- abs.diff_jeju_ivive$abs_LCL_jeju.R_ivive - abs.diff_jeju_ivive$Fa
@@ -1327,14 +1330,24 @@ p5.1 <- ggplot() +
                 breaks = trans_breaks("log10", function(x) 10^x, n = 6),
                 labels = trans_format("log10", math_format(10^.x))) +
   
-  annotate("point", x=1.5e-4, y=40, color="#2b2d4295", size=2, shape=21) +
-  annotate("text", x=1.9e-4, y=40, label=expression(paste("Drug in vivo ", "P"[eff])), hjust=0, size = 2.8) +
+  annotate("point", x=1.5e-4, y=55, color="#2b2d4295", size=2, shape=21) +
+  annotate("text", x=1.9e-4, y=55, label=expression(paste("Drug in vivo ", "P"[eff])), hjust=0, size = 2.8) +
+  annotate("point", x=1.5e-4, y=50, color="#2b2d4295", size=2, shape=16) +
+  annotate("text", x=1.9e-4, y=50, label=expression(paste("Drug in vitro ", "P"[app])), hjust=0, size = 2.8) +
+  annotate("point", x=1.5e-4, y=45, color="#2b2d4295", size=2.2, shape=17) +
+  annotate("text", x=1.9e-4, y=45, label=expression(paste("Environmental chemical in vitro ", "P"[app])), hjust=0, size = 2.8) +
   
-  annotate("point", x=1.5e-4, y=30, color="#2b2d4295", size=2, shape=16) +
-  annotate("text", x=1.9e-4, y=30, label=expression(paste("Drug in vitro ", "P"[app])), hjust=0, size = 2.8) +
-  
-  annotate("point", x=1.5e-4, y=20, color="#2b2d4295", size=2.2, shape=17) +
-  annotate("text", x=1.9e-4, y=20, label=expression(paste("Environmental chemical in vitro ", "P"[app])), hjust=0, size = 2.8) +
+  annotate("text", x=1.4e-4, y=35, label="BDDCS", hjust=0, size = 2.8) +
+  annotate("segment", x = 1.35e-4, xend = 1.65e-4, y = 30, yend = 30, color="#165DF995", size=1.8) +
+  annotate("text", x=1.9e-4, y=30, label="Class I", hjust=0, size = 2.8) +
+  annotate("segment", x = 1.35e-4, xend = 1.65e-4, y = 25, yend = 25, color="#6CBF7095", size=1.8) +
+  annotate("text", x=1.9e-4, y=25, label="Class II", hjust=0, size = 2.8) +
+  annotate("segment", x = 1.35e-4, xend = 1.65e-4, y = 20, yend = 20, color="#FF700095", size=1.8) +
+  annotate("text", x=1.9e-4, y=20, label="Class III", hjust=0, size = 2.8) +
+  annotate("segment", x = 1.35e-4, xend = 1.65e-4, y = 15, yend = 15, color="#C42A2A95", size=1.8) +
+  annotate("text", x=1.9e-4, y=15, label="Class IV", hjust=0, size = 2.8) +
+  annotate("segment", x = 1.35e-4, xend = 1.65e-4, y = 10, yend = 10, color="#2b2d4295", size=1.8) +
+  annotate("text", x=1.9e-4, y=10, label="Not Classified", hjust=0, size = 2.8) +
   
   annotate("text", x=1e-8, y=98, label="A", hjust=0, fontface = "bold", size=5) +
   
@@ -1416,13 +1429,13 @@ p5.3 <- ggplot() +
         axis.text = element_text(color = "black"))
 
 abs.diff_jeju$order <- as.numeric(abs.diff_jeju$drug.class)*10000 + abs.diff_jeju$Diff_med
-abs.diff_jeju$order[abs.diff_jeju$Type == "Env.che_in_vitro"] <- (as.numeric(abs.diff_jeju$drug.class[abs.diff_jeju$Type == "Env.che_in_vitro"])+5)*10000+abs.diff_jeju$Diff_med[abs.diff_jeju$Type == "Env.che_in_vitro"]
-abs.diff_jeju$chemical <- with(abs.diff_jeju, reorder(chemical, order))
+abs.diff_jeju$order[abs.diff_jeju$Type == "Env.che_in_vitro"] <- (as.numeric(abs.diff_jeju$drug.class[abs.diff_jeju$Type == "Env.che_in_vitro"])-5)*10000+abs.diff_jeju$Diff_med[abs.diff_jeju$Type == "Env.che_in_vitro"]
+abs.diff_jeju$chemical <- with(abs.diff_jeju, reorder(chemical, -order))
 p5.4 <- ggplot(abs.diff_jeju, aes(x= chemical, y = Diff_med)) +
   geom_segment(aes(x=chemical, xend=chemical, y=Diff_LCL, yend=Diff_UCL, color=drug.class), size=0.5) +
   geom_point(aes(color = drug.class, shape = Type), size=1) +
   scale_shape_manual(values = c(16, 21, 17)) +
-  scale_color_manual(values = c("#2b2d4295", "#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95", "#6CBF7095"))+
+  scale_color_manual(values = c("#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95", "#2b2d4295"))+
   annotate("text", x=78.5, y=-95, label="D", hjust=0, fontface = "bold", size=5) +
   scale_y_continuous(breaks=c(-100, -50, -20, 0, 20, 50, 100))+
   #facet_grid(~Type)+
@@ -1444,13 +1457,13 @@ p5.4 <- ggplot(abs.diff_jeju, aes(x= chemical, y = Diff_med)) +
         strip.text = element_text(size=10, face = "bold"))
 
 abs.diff_colon$order <- as.numeric(abs.diff_colon$drug.class)*10000 + abs.diff_colon$Diff_med
-abs.diff_colon$order[abs.diff_colon$Type == "Env.che_in_vitro"] <- (as.numeric(abs.diff_colon$drug.class[abs.diff_colon$Type == "Env.che_in_vitro"])+5)*10000+abs.diff_colon$Diff_med[abs.diff_colon$Type == "Env.che_in_vitro"]
-abs.diff_colon$chemical <- with(abs.diff_colon, reorder(chemical, order))
+abs.diff_colon$order[abs.diff_colon$Type == "Env.che_in_vitro"] <- (as.numeric(abs.diff_colon$drug.class[abs.diff_colon$Type == "Env.che_in_vitro"])-5)*10000+abs.diff_colon$Diff_med[abs.diff_colon$Type == "Env.che_in_vitro"]
+abs.diff_colon$chemical <- with(abs.diff_colon, reorder(chemical, -order))
 p5.5 <- ggplot(abs.diff_colon, aes(x= chemical, y = Diff_med)) +
   geom_segment(aes(x=chemical, xend=chemical, y=Diff_LCL, yend=Diff_UCL, color=drug.class), size=0.5) +
   geom_point(aes(color = drug.class, shape = Type), size=1) +
   scale_shape_manual(values = c(16, 17)) +
-  scale_color_manual(values = c("#2b2d4295", "#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95", "#6CBF7095"))+
+  scale_color_manual(values = c("#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95", "#2b2d4295"))+
   annotate("text", x=60.5, y=-95, label="E", hjust=0, fontface = "bold", size=5) +
   scale_y_continuous(breaks=c(-100, -50, -20, 0, 20, 50, 100))+
   #facet_grid(~Type)+
@@ -1472,13 +1485,13 @@ p5.5 <- ggplot(abs.diff_colon, aes(x= chemical, y = Diff_med)) +
         strip.text = element_text(size=10, face = "bold"))
 
 abs.diff_jeju_ivive$order <- as.numeric(abs.diff_jeju_ivive$drug.class)*10000 + abs.diff_jeju_ivive$Diff_med
-abs.diff_jeju_ivive$order[abs.diff_jeju_ivive$Type == "Env.che_in_vitro"] <- (as.numeric(abs.diff_jeju_ivive$drug.class[abs.diff_jeju_ivive$Type == "Env.che_in_vitro"])+5)*10000+abs.diff_jeju_ivive$Diff_med[abs.diff_jeju_ivive$Type == "Env.che_in_vitro"]
-abs.diff_jeju_ivive$chemical <- with(abs.diff_jeju_ivive, reorder(chemical, order))
+abs.diff_jeju_ivive$order[abs.diff_jeju_ivive$Type == "Env.che_in_vitro"] <- (as.numeric(abs.diff_jeju_ivive$drug.class[abs.diff_jeju_ivive$Type == "Env.che_in_vitro"])-5)*10000+abs.diff_jeju_ivive$Diff_med[abs.diff_jeju_ivive$Type == "Env.che_in_vitro"]
+abs.diff_jeju_ivive$chemical <- with(abs.diff_jeju_ivive, reorder(chemical, -order))
 p5.6 <- ggplot(abs.diff_jeju_ivive, aes(x= chemical, y = Diff_med)) +
   geom_segment(aes(x=chemical, xend=chemical, y=Diff_LCL, yend=Diff_UCL, color=drug.class), size=0.5) +
   geom_point(aes(color = drug.class, shape = Type), size=1) +
   scale_shape_manual(values = c(16, 17)) +
-  scale_color_manual(values = c("#2b2d4295", "#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95", "#6CBF7095"))+
+  scale_color_manual(values = c("#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95", "#2b2d4295"))+
   annotate("text", x=60.5, y=-95, label="F", hjust=0, fontface = "bold", size=5) +
   scale_y_continuous(breaks=c(-100, -50, -20, 0, 20, 50, 100))+
   #facet_grid(~Type)+
@@ -1548,7 +1561,6 @@ ggsave("plots/Figure.S1.tiff", height = 3.5, width = 7.5, units="in")
 Papp_in_vitro_newdata <- read.csv("outputs/Drug_Papp_newdata162drugs_in vitro_prediction_jeju_ivive.csv")
 rownames(Papp_in_vitro_newdata) <- Papp_in_vitro_newdata$X
 Papp_in_vitro_newdata <- Papp_in_vitro_newdata[,-1]
-Papp_in_vitro_newdata$drug.class <- factor(Papp_in_vitro_newdata$drug.class)
 
 abs.diff_drug_in_vitro.4 <- Papp_in_vitro_newdata[, c(1, 3, 5, 7, 8, 9)]
 abs.diff_drug_in_vitro.4$Type <- "Drug_in_vitro"
@@ -1556,8 +1568,10 @@ abs.diff_jeju_ivive_newdata <- abs.diff_drug_in_vitro.4
 abs.diff_jeju_ivive_newdata$Diff_med <- abs.diff_jeju_ivive_newdata$abs_med_jeju.R_ivive - abs.diff_jeju_ivive_newdata$Fa
 abs.diff_jeju_ivive_newdata$Diff_LCL <- abs.diff_jeju_ivive_newdata$abs_LCL_jeju.R_ivive - abs.diff_jeju_ivive_newdata$Fa
 abs.diff_jeju_ivive_newdata$Diff_UCL <- abs.diff_jeju_ivive_newdata$abs_UCL_jeju.R_ivive - abs.diff_jeju_ivive_newdata$Fa
+abs.diff_jeju_ivive_newdata$drug.class[which(abs.diff_jeju_ivive_newdata$drug.class == 0)] <- 5
 abs.diff_jeju_ivive_newdata$drug.class <- factor(abs.diff_jeju_ivive_newdata$drug.class)
 
+Papp_in_vitro_newdata$drug.class <- factor(Papp_in_vitro_newdata$drug.class)
 ps3.1 <- ggplot() + 
   geom_ribbon(aes(x=mc_sim_results_jeju_ivive$Peff_cm_s, ymin = mc_sim_results_jeju_ivive$abs_LCL, ymax = mc_sim_results_jeju_ivive$abs_UCL), fill = "#f2f2f2") +
   geom_line(aes(x=mc_sim_results_jeju_ivive$Peff_cm_s, y=mc_sim_results_jeju_ivive$abs_med), linetype = "solid", color="#495867", size = 1.1) + 
@@ -1567,6 +1581,18 @@ ps3.1 <- ggplot() +
   scale_x_log10(lim = c(1E-8,1E-2),
                 breaks = trans_breaks("log10", function(x) 10^x, n = 6),
                 labels = trans_format("log10", math_format(10^.x))) +
+  
+  annotate("text", x=1.4e-4, y=33, label="BDDCS", hjust=0, size = 3) +
+  annotate("segment", x = 1.35e-4, xend = 1.65e-4, y = 30, yend = 30, color="#165DF995", size=1.8) +
+  annotate("text", x=1.9e-4, y=30, label="Class I", hjust=0, size = 3) +
+  annotate("segment", x = 1.35e-4, xend = 1.65e-4, y = 27, yend = 27, color="#6CBF7095", size=1.8) +
+  annotate("text", x=1.9e-4, y=27, label="Class II", hjust=0, size = 3) +
+  annotate("segment", x = 1.35e-4, xend = 1.65e-4, y = 24, yend = 24, color="#FF700095", size=1.8) +
+  annotate("text", x=1.9e-4, y=24, label="Class III", hjust=0, size = 3) +
+  annotate("segment", x = 1.35e-4, xend = 1.65e-4, y = 21, yend = 21, color="#C42A2A95", size=1.8) +
+  annotate("text", x=1.9e-4, y=21, label="Class IV", hjust=0, size = 3) +
+  annotate("segment", x = 1.35e-4, xend = 1.65e-4, y = 18, yend = 18, color="#2b2d4295", size=1.8) +
+  annotate("text", x=1.9e-4, y=18, label="Not Classified", hjust=0, size = 3) +
   
   annotate("text", x=1e-8, y=98, label="A", hjust=0, fontface = "bold", size=5) +
   
@@ -1582,11 +1608,11 @@ ps3.1 <- ggplot() +
         axis.text = element_text(color = "black"))
 
 abs.diff_jeju_ivive_newdata$order <- as.numeric(abs.diff_jeju_ivive_newdata$drug.class)*1000 + abs.diff_jeju_ivive_newdata$Diff_med
-abs.diff_jeju_ivive_newdata$chemical = with(abs.diff_jeju_ivive_newdata, reorder(chemical, order))
+abs.diff_jeju_ivive_newdata$chemical = with(abs.diff_jeju_ivive_newdata, reorder(chemical, -order))
 ps3.2 <- ggplot(abs.diff_jeju_ivive_newdata, aes(x= chemical, y = Diff_med)) +
   geom_segment(aes(x=chemical, xend=chemical, y=Diff_LCL, yend=Diff_UCL, color=drug.class), size=0.5) +
   geom_point(aes(color = drug.class),shape = 16, size=1) +
-  scale_color_manual(values = c("#2b2d4295", "#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95"))+
+  scale_color_manual(values = c("#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95", "#2b2d4295"))+
   annotate("text", x=105, y=-95, label="B", hjust=0, fontface = "bold", size=5) +
   scale_y_continuous(breaks=c(-100, -50, -20, 0, 20, 50, 100))+
   theme_light() +
