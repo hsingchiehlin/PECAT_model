@@ -1004,7 +1004,8 @@ pH_data <- rbind(pH_data,
                  IVIVE_ratio[which(IVIVE_ratio$pH.group == "Group III"), ])
 pH_data$log.ratio <- log(pH_data$ivive_ratio)
 
-mu_pH <- ddply(pH_data, "pH.group", summarise, grp.mean=mean(log.ratio), grp.SD=sd(log.ratio))
+mu_pH <- ddply(pH_data, "pH.group", summarise, grp.mean=mean(log.ratio), grp.SD=sd(log.ratio),
+                                               Geo.mean=exp(mean(log(ivive_ratio))), Geo.SD=geoSD(ivive_ratio))
 
 pH_names <- c(
   'All'="All (n = 242)",
