@@ -217,7 +217,7 @@ END.')
 mc_sim_results_check.para <- read.csv("outputs/mc_sim_results_SI+LI_checking effect of che-specific para_on %abs.csv")
 
 #Plotting
-tiff(width = 6, height = 3.2, "plots/Figure.S_sensitivity analysis_chemical-sepecific para. for Fabs.tiff", units = "in", res=400)
+tiff(width = 6, height = 3.2, "plots/Figure.S1_sensitivity analysis_chemical-sepecific para. for Fabs.tiff", units = "in", res=400)
 ggplot() + 
   # Baseline
   geom_line(aes(x=basic_sim_results$Peff_cm_s, y=basic_sim_results$abs), linetype = "solid", color="#3d424a", size = 2.5) + 
@@ -267,7 +267,7 @@ model_data <- cbind(model_data,
                     10^predict(reg.model_Peff_Papp_2, newdata = new.dat, interval = 'confidence'))
 colnames(model_data)[c(5:7)] <- c("Peff_model.2_fit",  "Peff_model.2_lwr", "Peff_model.2_upr")
 
-tiff(width = 6, height = 4.5, "plots/Figure.S_Scatter plot_ivive.tiff", units = "in", res=400)
+tiff(width = 6, height = 4.5, "plots/Figure.S2_Scatter plot_ivive.tiff", units = "in", res=400)
 ggplot() +           
   geom_point(aes(x = Peff_Papp_rawdata$Papp, y = Peff_Papp_rawdata$Peff), alpha = 0.5)+
   geom_line(aes(x = model_data$Papp, y = model_data$Peff_model.1_fit), color = "blue", size=1.2)+
@@ -302,7 +302,7 @@ dev.off()
 hist.residuals <- data.frame(model = rep(c("Model 1", "Model 2"), each = 242),
                              residuals = c(reg.model_Peff_Papp_1[["residuals"]], reg.model_Peff_Papp_2[["residuals"]]))
 
-tiff(width = 6, height = 4.5, "plots/Figure.S_Histogram_residuals_ivive.tiff", units = "in", res=300)
+tiff(width = 6, height = 4.5, "plots/Figure.S2_Histogram_residuals_ivive.tiff", units = "in", res=300)
 ggplot(aes(residuals, color = model, fill = model), data = hist.residuals) + 
   geom_histogram(position="identity", alpha=0.5) + 
   scale_color_manual(values=c("blue", "red"))+
@@ -324,7 +324,7 @@ ggplot(aes(residuals, color = model, fill = model), data = hist.residuals) +
 dev.off()
 
 
-# ------------------- segment-seocific scaling Part -------------------
+# ------------------- segment-specific scaling Part -------------------
 Seg_Papp_rawdata <- read.csv("DATA/SUPP_Site-specific_Papp_rawdata.csv")
 
 # Jej-Duo
@@ -529,8 +529,8 @@ ggplot() +
   scale_y_log10(lim = c(1E-7, 1E-1),
                 breaks = trans_breaks("log10", function(x) 10^x, n = 6),
                 labels = trans_format("log10", math_format(10^.x)))+
-  annotate(geom="text", x=1E-6, y=1E-2, label="Model 1: log10(P_duo) = log10(P_col) + 0.584", size=3, color = "blue")+
-  annotate(geom="text", x=1E-6, y=5E-3, label="Model 2: log10(P_duo) = -0.197 * log10(P_col) - 6.002, R2 = 0.0009", size=3, color = "red")+
+  annotate(geom="text", x=5E-6, y=1E-2, label="Model 1: log10(P_duo) = log10(P_col) + 0.584", size=3, color = "blue")+
+  annotate(geom="text", x=5E-6, y=5E-3, label="Model 2: log10(P_duo) = -0.197 * log10(P_col) - 6.002, R2 = 0.0009", size=3, color = "red")+
   theme_bw() + 
   xlab("P_Colon") +
   ylab("P_Duodenum")+
@@ -551,8 +551,8 @@ ggplot() +
   scale_y_log10(lim = c(1E-7, 1E-1),
                 breaks = trans_breaks("log10", function(x) 10^x, n = 6),
                 labels = trans_format("log10", math_format(10^.x)))+
-  annotate(geom="text", x=1E-6, y=1E-2, label="Model 1: log10(P_jej) = log10(P_col) - 0.630", size=3, color = "blue")+
-  annotate(geom="text", x=1E-6, y=5E-3, label="Model 2: log10(P_jej) = 0.397 * log10(P_col) - 2.402, R2 = 0.18", size=3, color = "red")+
+  annotate(geom="text", x=5E-6, y=1E-2, label="Model 1: log10(P_jej) = log10(P_col) - 0.630", size=3, color = "blue")+
+  annotate(geom="text", x=5E-6, y=5E-3, label="Model 2: log10(P_jej) = 0.397 * log10(P_col) - 2.402, R2 = 0.18", size=3, color = "red")+
   theme_bw() + 
   xlab("P_Colon") +
   ylab("P_Jejunum")+
@@ -572,14 +572,14 @@ ggplot() +
   scale_y_log10(lim = c(1E-8, 1E-1),
                 breaks = trans_breaks("log10", function(x) 10^x, n = 6),
                 labels = trans_format("log10", math_format(10^.x)))+
-  annotate(geom="text", x=1E-6, y=1E-2, label="Model 1: log10(P_ile) = log10(P_col) + 0.635", size=3, color = "blue")+
-  annotate(geom="text", x=1E-6, y=5E-3, label="Model 2: log10(P_ile) = 0.463 * log10(P_col) - 1.200, R2 = 0.23", size=3, color = "red")+
+  annotate(geom="text", x=5E-6, y=1E-2, label="Model 1: log10(P_ile) = log10(P_col) + 0.635", size=3, color = "blue")+
+  annotate(geom="text", x=5E-6, y=5E-3, label="Model 2: log10(P_ile) = 0.463 * log10(P_col) - 1.200, R2 = 0.23", size=3, color = "red")+
   theme_bw() + 
   xlab("P_Colon") +
   ylab("P_Ileum")+
   figure.setting
 
-tiff(width = 18, height = 9, "plots/Figure_Scatter plot_seg_ratio_all.tiff", units = "in", res=400)
+jpeg(width = 15, height = 7.5, "plots/Figure S3A_Scatter plot_seg_ratio_all.jpeg", units = "in", res=400)
 Fig.1.1 + Fig.1.2 + Fig.1.3 + Fig.1.4 + Fig.1.5 + Fig.1.6 + plot_layout(widths = c(1/3, 1/3, 1/3), height = c(1/2, 1/2))
 dev.off()
 
@@ -622,7 +622,7 @@ ggplot(aes(Residuals, color = Model, fill = Model), data = hist.residuals) +
 dev.off()
 
 
-# ------------------- segment-seocific scaling Part (rm outlier) -------------------
+# ------------------- segment-specific scaling Part (rm outlier) -------------------
 Seg_Papp_rawdata <- read.csv("DATA/SUPP_Site-specific_Papp_rawdata.csv")
 Seg_Papp_rawdata_rm <- Seg_Papp_rawdata[-3, ]
 
@@ -835,8 +835,8 @@ Fig.1.4 <-
   scale_y_log10(lim = c(1E-8, 1E-1),
                 breaks = trans_breaks("log10", function(x) 10^x, n = 6),
                 labels = trans_format("log10", math_format(10^.x)))+
-  annotate(geom="text", x=1E-6, y=1E-2, label="Model 1: log10(P_duo) = log10(P_col) + 0.105, R2 = 0.91", size=3, color = "blue")+
-  annotate(geom="text", x=1E-6, y=5E-3, label="Model 2: log10(P_duo) = 0.568 * log10(P_col) - 2.139, R2 = 0.91", size=3, color = "red")+
+  annotate(geom="text", x=5E-6, y=1E-2, label="Model 1: log10(P_duo) = log10(P_col) + 0.105, R2 = 0.91", size=3, color = "blue")+
+  annotate(geom="text", x=5E-6, y=5E-3, label="Model 2: log10(P_duo) = 0.568 * log10(P_col) - 2.139, R2 = 0.91", size=3, color = "red")+
   theme_bw() + 
   xlab("P_Colon") +
   ylab("P_Duodenum")+
@@ -857,8 +857,8 @@ Fig.1.5 <-
   scale_y_log10(lim = c(1E-8, 1E-1),
                 breaks = trans_breaks("log10", function(x) 10^x, n = 6),
                 labels = trans_format("log10", math_format(10^.x)))+
-  annotate(geom="text", x=1E-6, y=1E-2, label="Model 1: log10(P_jej) = log10(P_col) + 0.492, R2 = 0.48", size=3, color = "blue")+
-  annotate(geom="text", x=1E-6, y=5E-3, label="Model 2: log10(P_jej) = 0.734 * log10(P_col) - 0.797, R2 = 0.48", size=3, color = "red")+
+  annotate(geom="text", x=5E-6, y=1E-2, label="Model 1: log10(P_jej) = log10(P_col) + 0.492, R2 = 0.48", size=3, color = "blue")+
+  annotate(geom="text", x=5E-6, y=5E-3, label="Model 2: log10(P_jej) = 0.734 * log10(P_col) - 0.797, R2 = 0.48", size=3, color = "red")+
   theme_bw() + 
   xlab("P_Colon") +
   ylab("P_Jejunum")+
@@ -878,14 +878,14 @@ Fig.1.6 <-
   scale_y_log10(lim = c(1E-8, 1E-1),
                 breaks = trans_breaks("log10", function(x) 10^x, n = 6),
                 labels = trans_format("log10", math_format(10^.x)))+
-  annotate(geom="text", x=1E-6, y=1E-2, label="Model 1: log10(P_ile) = log10(P_col) + 0.382, R2 = 0.75", size=3, color = "blue")+
-  annotate(geom="text", x=1E-6, y=5E-3, label="Model 2: log10(P_ile) = 1.054 * log10(P_col) + 0.636, R2 = 0.75", size=3, color = "red")+
+  annotate(geom="text", x=5E-6, y=1E-2, label="Model 1: log10(P_ile) = log10(P_col) + 0.382, R2 = 0.75", size=3, color = "blue")+
+  annotate(geom="text", x=5E-6, y=5E-3, label="Model 2: log10(P_ile) = 1.054 * log10(P_col) + 0.636, R2 = 0.75", size=3, color = "red")+
   theme_bw() + 
   xlab("P_Colon") +
   ylab("P_Ileum")+
   figure.setting
 
-tiff(width = 18, height = 9, "plots/Figure_Scatter plot_seg_ratio_rm.tiff", units = "in", res=400)
+jpeg(width = 15, height = 7.5, "plots/Figure S3B_Scatter plot_seg_ratio_rm.jpeg", units = "in", res=400)
 Fig.1.1 + Fig.1.2 + Fig.1.3 + Fig.1.4 + Fig.1.5 + Fig.1.6 + plot_layout(widths = c(1/3, 1/3, 1/3), height = c(1/2, 1/2))
 dev.off()
 
@@ -971,7 +971,7 @@ Inhibitor_names <- c(
   'Without inhibitor'="Without inhibitor (n = 232)"
 )
 
-tiff(width = 10, height = 4, "plots/Figure.S_IVIVE ratio.inhibitor.tiff", units = "in", res=400)
+tiff(width = 10, height = 4, "plots/Figure.S5_IVIVE ratio.inhibitor.tiff", units = "in", res=400)
 ggplot(Inhibitor_data, aes(x=log.ratio, fill=Inhibitor, color=Inhibitor)) + 
   geom_histogram(aes(y=..density..), fill="white")+
   geom_density(alpha=.2, size = 0.6)+
@@ -1014,7 +1014,7 @@ pH_names <- c(
   'Group III'="Group III (n = 47)"
 )
 
-tiff(width = 12, height = 4, "plots/Figure.S_IVIVE ratio.pH group.tiff", units = "in", res=400)
+tiff(width = 12, height = 4, "plots/Figure.S6_IVIVE ratio.pH group.tiff", units = "in", res=400)
 ggplot(pH_data, aes(x=log.ratio, fill=pH.group, color=pH.group)) + 
   geom_histogram(aes(y=..density..), fill="white")+
   geom_density(alpha=.2, size = 0.6)+

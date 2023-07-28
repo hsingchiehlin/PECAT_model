@@ -59,8 +59,8 @@ upper.panel<-function(x, y){
   text(0.6, 0.2, txt, cex = 1)
   text(0.6, 0.1, txt.2, cex = 1)
 }
-# Figure S2A
-tiff(width = 7.5, height = 6.54, "plots/Figure.S2a.tiff", units = "in", res=600)
+# Figure S8A
+jpeg(width = 7.5, height = 6.54, "plots/Figure.S8A.jpeg", units = "in", res=300)
 pairs(log(Peff.ratio.jej[,2:4]), lower.panel = NULL, 
       upper.panel = upper.panel)
 dev.off()
@@ -153,9 +153,9 @@ pairs(log(Peff.ratio.col[,2:4]), lower.panel = NULL,
 # remove cyclosporin data
 Peff.ratio.col <- Peff.ratio.col[-3, ]
 
-# Figure S2B
+# Figure S8B
 # Scatter Plot Matrices "pearson" (remove cyclosporin data)
-tiff(width = 7.5, height = 6.54, "plots/Figure.S2b.tiff", units = "in", res=600)
+jpeg(width = 7.5, height = 6.54, "plots/Figure.S8B.jpeg", units = "in", res=300)
 pairs(log(Peff.ratio.col[,2:4]), lower.panel = NULL, 
       upper.panel = upper.panel)
 dev.off()
@@ -1453,7 +1453,7 @@ p5.4 <- ggplot(abs.diff_jeju, aes(x= chemical, y = Diff_med)) +
         axis.title.y = element_blank(),
         axis.text.x = element_text(color = "black", vjust = -0.3),
         #axis.text.y = element_blank(),
-        axis.text.y = element_text(color = "black", size = 4),
+        axis.text.y = element_text(color = "black", size = 5),#
         strip.text = element_text(size=10, face = "bold"))
 
 abs.diff_colon$order <- as.numeric(abs.diff_colon$drug.class)*10000 + abs.diff_colon$Diff_med
@@ -1481,7 +1481,7 @@ p5.5 <- ggplot(abs.diff_colon, aes(x= chemical, y = Diff_med)) +
         axis.title.y = element_blank(),
         axis.text.x = element_text(color = "black", vjust = -0.3),
         #axis.text.y = element_blank(),
-        axis.text.y = element_text(color = "black", size = 4),
+        axis.text.y = element_text(color = "black", size = 5),#
         strip.text = element_text(size=10, face = "bold"))
 
 abs.diff_jeju_ivive$order <- as.numeric(abs.diff_jeju_ivive$drug.class)*10000 + abs.diff_jeju_ivive$Diff_med
@@ -1509,20 +1509,22 @@ p5.6 <- ggplot(abs.diff_jeju_ivive, aes(x= chemical, y = Diff_med)) +
         axis.title.y = element_blank(),
         axis.text.x = element_text(color = "black", vjust = -0.3),
         #axis.text.y = element_blank(),
-        axis.text.y = element_text(color = "black", size = 4),
+        axis.text.y = element_text(color = "black", size = 5),#
         strip.text = element_text(size=10, face = "bold"))
 
-tiff(width = 12.2, height = 15, "plots/Figure.5.tiff", units = "in", res=600)
-p5.1 + p5.4 + p5.2 + p5.5 + p5.3 + p5.6 + plot_layout(widths = c(1.2/2, 0.8/2), height = c(4, 4, 4))
+#tiff(width = 12.2, height = 15, "plots/Figure.5.tiff", units = "in", res=600)
+#p5.1 + p5.4 + p5.2 + p5.5 + p5.3 + p5.6 + plot_layout(widths = c(1.2/2, 0.8/2), height = c(4, 4, 4))
+#dev.off()
+
+jpeg(width = 13, height = 14, "plots/Figure.5.jpeg", units = "in", res=300)
+p5.1 + p5.4 + p5.2 + p5.5 + p5.3 + p5.6 + plot_layout(widths = c(1.1/2, 0.9/2), height = c(1.12/3, 0.94/3, 0.94/3))
 dev.off()
-
-
 ```
 
 
 ```{r Plotting Figure.S1_css_check and FigureS3_relationship of permeability and %abs with new data (162 drugs)}
 
-# ---------- Plotting: Figure.S1_css_check ----------
+# ---------- Plotting: Figure.S7_css_check ----------
 # Check Css equation workable
 css_check_data <- rbind(mc_sim_results_jeju[, c(1,4)], mc_sim_results_colon[, c(1,4)])
 css_check_data$ratio <- rep(c("A. Ratio_jeju", "B. Ratio_colon"), each = 25)
@@ -1553,10 +1555,10 @@ ggplot(css_check_data)+
         axis.text = element_text(color = "black", face = "bold"),
         strip.text.x = element_text(size=11, face = "bold"))
 
-ggsave("plots/Figure.S1.tiff", height = 3.5, width = 7.5, units="in")
+ggsave("plots/Figure.S7.jpeg", height = 3.5, width = 7.5, units="in")
 
 
-# ---------- FigureS3_relationship of permeability and %abs with new data (162 drugs) ----------
+# ---------- FigureS9_relationship of permeability and %abs with new data (162 drugs) ----------
 
 Papp_in_vitro_newdata <- read.csv("outputs/Drug_Papp_newdata162drugs_in vitro_prediction_jeju_ivive.csv")
 rownames(Papp_in_vitro_newdata) <- Papp_in_vitro_newdata$X
@@ -1610,8 +1612,8 @@ ps3.1 <- ggplot() +
 abs.diff_jeju_ivive_newdata$order <- as.numeric(abs.diff_jeju_ivive_newdata$drug.class)*1000 + abs.diff_jeju_ivive_newdata$Diff_med
 abs.diff_jeju_ivive_newdata$chemical = with(abs.diff_jeju_ivive_newdata, reorder(chemical, -order))
 ps3.2 <- ggplot(abs.diff_jeju_ivive_newdata, aes(x= chemical, y = Diff_med)) +
-  geom_segment(aes(x=chemical, xend=chemical, y=Diff_LCL, yend=Diff_UCL, color=drug.class), size=0.5) +
-  geom_point(aes(color = drug.class),shape = 16, size=1) +
+  geom_segment(aes(x=chemical, xend=chemical, y=Diff_LCL, yend=Diff_UCL, color=drug.class), size=0.7) +
+  geom_point(aes(color = drug.class),shape = 16, size=1.8) +
   scale_color_manual(values = c("#165DF995", "#6CBF7095", "#FF700095", "#C42A2A95", "#2b2d4295"))+
   annotate("text", x=105, y=-95, label="B", hjust=0, fontface = "bold", size=5) +
   scale_y_continuous(breaks=c(-100, -50, -20, 0, 20, 50, 100))+
@@ -1632,8 +1634,8 @@ ps3.2 <- ggplot(abs.diff_jeju_ivive_newdata, aes(x= chemical, y = Diff_med)) +
         axis.text.y = element_text(color = "black", size = 6))
 
 
-tiff(width = 18, height = 9, "plots/Figure.S3.tiff", units = "in", res=600)
-ps3.1 + ps3.2 + plot_layout(widths = c(1.2/2, 0.8/2))
+jpeg(width = 15, height = 8.5, "plots/Figure.S9.jpeg", units = "in", res=300)
+ps3.1 + ps3.2 + plot_layout(widths = c(1.3/2, 0.7/2))
 dev.off()
 
 
